@@ -4,7 +4,7 @@ import { AppState, Participant, Transaction, Product, Booth, ClosingOption } fro
 import { toast } from '@/hooks/use-toast';
 
 interface AppContextType extends AppState {
-  addParticipant: (participant: Omit<Participant, 'id' | 'createdAt'>) => void;
+  addParticipant: (participant: Omit<Participant, 'id' | 'createdAt' | 'qrCode'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
   addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
@@ -72,7 +72,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return `PAROQUIA_SANTA_LUZIA_${cardNumber}`;
   };
 
-  const addParticipant = (participant: Omit<Participant, 'id' | 'createdAt'>) => {
+  const addParticipant = (participant: Omit<Participant, 'id' | 'createdAt' | 'qrCode'>) => {
     const newParticipant: Participant = {
       ...participant,
       id: generateId(),
