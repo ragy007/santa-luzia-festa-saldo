@@ -36,6 +36,215 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_options: {
+        Row: {
+          amount: number
+          card_returned: boolean
+          created_at: string
+          deposit_refunded: boolean
+          id: string
+          notes: string | null
+          option: string
+          participant_id: string
+        }
+        Insert: {
+          amount: number
+          card_returned?: boolean
+          created_at?: string
+          deposit_refunded?: boolean
+          id?: string
+          notes?: string | null
+          option: string
+          participant_id: string
+        }
+        Update: {
+          amount?: number
+          card_returned?: boolean
+          created_at?: string
+          deposit_refunded?: boolean
+          id?: string
+          notes?: string | null
+          option?: string
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_options_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festival_booths: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          total_sales: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          total_sales?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          total_sales?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      festival_products: {
+        Row: {
+          booth: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_free: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          booth: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          booth?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      festival_settings: {
+        Row: {
+          accent_color: string
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          is_active: boolean
+          location: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          primary_color: string
+          primary_icon: string | null
+          religious_message: string | null
+          secondary_color: string
+          secondary_icon: string | null
+          start_time: string
+          subtitle: string | null
+          theme: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          location: string
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          primary_color?: string
+          primary_icon?: string | null
+          religious_message?: string | null
+          secondary_color?: string
+          secondary_icon?: string | null
+          start_time: string
+          subtitle?: string | null
+          theme?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          location?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          primary_color?: string
+          primary_icon?: string | null
+          religious_message?: string | null
+          secondary_color?: string
+          secondary_icon?: string | null
+          start_time?: string
+          subtitle?: string | null
+          theme?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      participants: {
+        Row: {
+          balance: number
+          card_number: string
+          created_at: string
+          id: string
+          initial_balance: number
+          is_active: boolean
+          name: string
+          phone: string | null
+          qr_code: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          card_number: string
+          created_at?: string
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          qr_code: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          card_number?: string
+          created_at?: string
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          qr_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           booth_id: string
@@ -108,6 +317,47 @@ export type Database = {
             columns: ["booth_id"]
             isOneToOne: false
             referencedRelation: "booths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          booth: string | null
+          created_at: string
+          description: string
+          id: string
+          operator_name: string
+          participant_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          booth?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          operator_name: string
+          participant_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          booth?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          operator_name?: string
+          participant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
             referencedColumns: ["id"]
           },
         ]
