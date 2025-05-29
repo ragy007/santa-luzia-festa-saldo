@@ -11,6 +11,8 @@ export interface FestivalSettings {
   isActive: boolean;
   startTime: string;
   endTime: string;
+  primaryIcon?: string;
+  secondaryIcon?: string;
   colors: {
     primary: string;
     secondary: string;

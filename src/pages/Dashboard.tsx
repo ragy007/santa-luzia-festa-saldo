@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/AppContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Heart, Church, Power, AlertTriangle } from 'lucide-react';
+import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Power, AlertTriangle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
@@ -89,7 +89,7 @@ const Dashboard: React.FC = () => {
       color: 'text-green-600',
       bgColor: 'from-green-50 to-green-100',
       borderColor: 'border-green-200',
-      icon: Heart,
+      icon: Clock,
       message: `A festa está acontecendo até às ${settings.endTime}! Use o menu lateral para gerenciar participantes e vendas.`
     };
   };
@@ -102,14 +102,6 @@ const Dashboard: React.FC = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center py-6">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-full">
-              <Heart className="h-8 w-8 text-white" />
-            </div>
-            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-full">
-              <Church className="h-8 w-8 text-white" />
-            </div>
-          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {settings.title || 'Festa Comunitária 2024'}
           </h1>

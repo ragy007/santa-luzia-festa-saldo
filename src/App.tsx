@@ -17,6 +17,7 @@ import Relatorios from "./pages/Relatorios";
 import Encerramento from "./pages/Encerramento";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <AppProvider>
             <BrowserRouter>
               <Routes>
+                <Route path="/landing" element={<LandingPage />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route
                   path="/"

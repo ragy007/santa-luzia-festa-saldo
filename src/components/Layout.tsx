@@ -15,13 +15,38 @@ import {
   Settings,
   Church,
   LogOut,
-  Heart
+  Heart,
+  Cross,
+  Star,
+  Sun,
+  Moon,
+  Crown,
+  Sparkles,
+  Shield,
+  Gem,
+  Flame,
+  TreePine
 } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   title: string;
 }
+
+const iconMap = {
+  Heart,
+  Church,
+  Cross,
+  Star,
+  Sun,
+  Moon,
+  Crown,
+  Sparkles,
+  Shield,
+  Gem,
+  Flame,
+  TreePine
+};
 
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
@@ -55,6 +80,19 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     }
   };
 
+  const getPrimaryIcon = () => {
+    const iconName = settings.primaryIcon || 'Heart';
+    return iconMap[iconName as keyof typeof iconMap] || Heart;
+  };
+
+  const getSecondaryIcon = () => {
+    const iconName = settings.secondaryIcon || 'Church';
+    return iconMap[iconName as keyof typeof iconMap] || Church;
+  };
+
+  const PrimaryIcon = getPrimaryIcon();
+  const SecondaryIcon = getSecondaryIcon();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -71,11 +109,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
                       className="h-6 w-6 object-contain"
                     />
                   ) : (
-                    <Heart className="h-6 w-6 text-white" />
+                    <PrimaryIcon className="h-6 w-6 text-white" />
                   )}
                 </div>
                 <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-lg">
-                  <Church className="h-6 w-6 text-white" />
+                  <SecondaryIcon className="h-6 w-6 text-white" />
                 </div>
               </div>
               <div>

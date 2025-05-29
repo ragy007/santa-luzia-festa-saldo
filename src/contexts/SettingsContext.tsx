@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FestivalSettings, UserAccount } from '@/types/settings';
 
@@ -22,6 +23,8 @@ const defaultSettings: FestivalSettings = {
   isActive: true,
   startTime: '18:00',
   endTime: '23:00',
+  primaryIcon: 'Heart',
+  secondaryIcon: 'Church',
   colors: {
     primary: '#4F46E5',
     secondary: '#F8FAFC', 
