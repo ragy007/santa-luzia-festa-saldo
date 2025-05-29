@@ -42,6 +42,13 @@ const defaultSettings: Settings = {
   title: 'Festa Comunitária 2024',
   subtitle: 'Centro Social da Paróquia Santa Luzia',
   religiousMessage: '',
+  primaryIcon: 'Heart',
+  secondaryIcon: 'Church',
+  colors: {
+    primary: '#3B82F6',
+    secondary: '#10B981',
+    accent: '#E0E7FF',
+  },
 };
 
 // Dados padrão que sempre devem existir

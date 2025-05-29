@@ -36,6 +36,13 @@ export interface Settings {
   title?: string;
   subtitle?: string;
   religiousMessage?: string;
+  primaryIcon?: string;
+  secondaryIcon?: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
 }
 
 // Add the Booth interface that SettingsContext expects
