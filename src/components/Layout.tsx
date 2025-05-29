@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import Header from './Header';
 import { 
   Home, 
   UserPlus, 
@@ -52,18 +53,24 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
 
-  const menuItems = [
-    { path: '/', icon: Home, label: 'Dashboard', color: 'text-blue-600' },
-    { path: '/cadastro', icon: UserPlus, label: 'Cadastro', color: 'text-green-600' },
-    { path: '/recarga', icon: CreditCard, label: 'Recarga', color: 'text-yellow-600' },
-    { path: '/consumo', icon: ShoppingCart, label: 'Consumo', color: 'text-orange-600' },
-    { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600' },
-    { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600' },
-    { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600' },
-    { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600' },
+  const allMenuItems = [
+    { path: '/', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
+    { path: '/cadastro', icon: UserPlus, label: 'Cadastro', color: 'text-green-600', adminOnly: true },
+    { path: '/recarga', icon: CreditCard, label: 'Recarga', color: 'text-yellow-600', adminOnly: true },
+    { path: '/consumo', icon: ShoppingCart, label: 'Consumo', color: 'text-orange-600', adminOnly: false },
+    { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600', adminOnly: true },
+    { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600', adminOnly: true },
+    { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600', adminOnly: true },
+    { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600', adminOnly: true },
   ];
+
+  // Filtrar menu baseado no role do usuário
+  const menuItems = allMenuItems.filter(item => {
+    if (user?.role === 'admin') return true;
+    return !item.adminOnly;
+  });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -96,44 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="flex gap-2">
-                <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg">
-                  {settings.logoUrl ? (
-                    <img 
-                      src={settings.logoUrl} 
-                      alt="Logo" 
-                      className="h-6 w-6 object-contain"
-                    />
-                  ) : (
-                    <PrimaryIcon className="h-6 w-6 text-white" />
-                  )}
-                </div>
-                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-lg">
-                  <SecondaryIcon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  {settings.title || 'Festa Comunitária 2024'}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {settings.subtitle || 'Centro Social da Paróquia Santa Luzia'}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{title}</p>
-              <p className="text-xs text-gray-500">
-                {formatDate(settings.date)} {settings.phone && `• ${settings.phone}`}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-6">

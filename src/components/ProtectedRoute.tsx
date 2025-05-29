@@ -6,11 +6,13 @@ import { Navigate } from 'react-router-dom';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  allowedRoles?: ('admin' | 'operator')[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false 
+  requireAdmin = false,
+  allowedRoles = ['admin', 'operator']
 }) => {
   const { user, loading } = useAuth();
 
@@ -35,6 +37,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Acesso Negado</h1>
           <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
+          <p className="text-sm text-gray-500 mt-2">Esta funcionalidade é exclusiva para administradores.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!allowedRoles.includes(user.role as any)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Acesso Negado</h1>
+          <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
+          <p className="text-sm text-gray-500 mt-2">Operadores só podem acessar a tela de vendas.</p>
         </div>
       </div>
     );
