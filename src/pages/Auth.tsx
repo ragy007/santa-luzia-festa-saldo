@@ -23,9 +23,14 @@ const Auth: React.FC = () => {
   const { user } = useAuth();
   const { settings, users } = useSettings();
 
+  console.log('Auth component - Current user:', user);
+  console.log('Auth component - Available users:', users);
+
   // Redirecionar se já estiver logado
   useEffect(() => {
+    console.log('Auth useEffect - user:', user);
     if (user) {
+      console.log('User found, redirecting to dashboard');
       navigate('/');
     }
   }, [user, navigate]);
@@ -35,33 +40,55 @@ const Auth: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    console.log('Attempting login with:', credentials);
+    console.log('Available users for comparison:', users);
+
     try {
       // Simular autenticação local
-      const foundUser = users.find(u => 
-        u.email === credentials.email && 
-        u.password === credentials.password &&
-        u.isActive
-      );
+      const foundUser = users.find(u => {
+        console.log('Checking user:', u.email, 'vs', credentials.email);
+        console.log('Password check:', u.password, 'vs', credentials.password);
+        console.log('Is active:', u.isActive);
+        
+        return u.email === credentials.email && 
+               u.password === credentials.password &&
+               u.isActive;
+      });
+
+      console.log('Found user:', foundUser);
 
       if (foundUser) {
         // Simular login bem-sucedido
-        localStorage.setItem('auth-user', JSON.stringify({
+        const authUser = {
           id: foundUser.id,
           email: foundUser.email,
           name: foundUser.name,
           role: foundUser.role
-        }));
+        };
+        
+        console.log('Setting auth user in localStorage:', authUser);
+        localStorage.setItem('auth-user', JSON.stringify(authUser));
         
         toast({
           title: "Login realizado!",
           description: `Bem-vindo, ${foundUser.name}!`,
         });
         
-        navigate('/');
+        console.log('About to navigate to dashboard');
+        
+        // Forçar refresh do contexto de auth antes do redirecionamento
+        window.dispatchEvent(new Event('storage'));
+        
+        // Usar setTimeout para garantir que o contexto seja atualizado
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       } else {
+        console.log('Login failed - user not found or invalid credentials');
         setError('Email ou senha incorretos');
       }
     } catch (error) {
+      console.error('Login error:', error);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
