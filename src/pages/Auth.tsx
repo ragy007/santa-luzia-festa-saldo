@@ -95,6 +95,10 @@ const Auth: React.FC = () => {
     }
   };
 
+  // Encontrar usuários para mostrar as credenciais
+  const adminUser = users.find(u => u.role === 'admin');
+  const operatorUser = users.find(u => u.role === 'operator');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -131,9 +135,20 @@ const Auth: React.FC = () => {
             <Alert className="mb-4 border-blue-200 bg-blue-50">
               <Info className="h-4 w-4" />
               <AlertDescription className="text-blue-600">
-                <strong>Credenciais padrão:</strong><br />
-                Email: admin@festa.com<br />
-                Senha: 123456
+                <strong>Credenciais disponíveis:</strong><br />
+                {adminUser && (
+                  <>
+                    <strong>Admin:</strong> {adminUser.email} / {adminUser.password}<br />
+                  </>
+                )}
+                {operatorUser && (
+                  <>
+                    <strong>Operador:</strong> {operatorUser.email} / {operatorUser.password}
+                  </>
+                )}
+                {!operatorUser && !adminUser && (
+                  <>Email: admin@festa.com / Senha: 123456</>
+                )}
               </AlertDescription>
             </Alert>
 
