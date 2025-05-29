@@ -40,15 +40,23 @@ const Auth: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    console.log('Attempting sign in with:', credentials.email);
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
       });
 
-      if (error) throw error;
+      console.log('Sign in response:', { data, error });
+
+      if (error) {
+        console.error('Auth error:', error);
+        throw error;
+      }
 
       if (data.user) {
+        console.log('User signed in successfully:', data.user);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
@@ -56,10 +64,19 @@ const Auth: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Erro no login:', error);
-      setError(error.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      if (error.message === 'Invalid login credentials') {
+        setError('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
+      } else {
+        setError(error.message || 'Erro ao fazer login. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTestCredentials = (email: string, password: string) => {
+    setCredentials({ email, password });
+    setError(null);
   };
 
   return (
@@ -99,8 +116,22 @@ const Auth: React.FC = () => {
               <Info className="h-4 w-4" />
               <AlertDescription className="text-blue-600">
                 <strong>Credenciais de teste:</strong><br />
-                <strong>Admin:</strong> admin@festa.com / 123456<br />
-                <strong>Operador:</strong> operador@festa.com / 123456
+                <div className="mt-2 space-y-1">
+                  <button 
+                    type="button"
+                    onClick={() => handleTestCredentials('admin@festa.com', '123456')}
+                    className="block text-left hover:bg-blue-100 p-1 rounded"
+                  >
+                    <strong>Admin:</strong> admin@festa.com / 123456
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => handleTestCredentials('operador@festa.com', '123456')}
+                    className="block text-left hover:bg-blue-100 p-1 rounded"
+                  >
+                    <strong>Operador:</strong> operador@festa.com / 123456
+                  </button>
+                </div>
               </AlertDescription>
             </Alert>
 
