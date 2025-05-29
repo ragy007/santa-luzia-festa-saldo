@@ -27,32 +27,14 @@ const Auth: React.FC = () => {
   // Redirecionar se já estiver logado
   useEffect(() => {
     if (user && profile) {
+      console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
       if (profile.role === 'admin') {
-        navigate('/');
+        navigate('/dashboard');
       } else {
         navigate('/consumo');
       }
     }
   }, [user, profile, navigate]);
-
-  // Função para limpar estado de autenticação
-  const cleanupAuthState = () => {
-    // Limpar localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Limpar sessionStorage
-    if (typeof sessionStorage !== 'undefined') {
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      });
-    }
-  };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,19 +44,6 @@ const Auth: React.FC = () => {
     console.log('Attempting sign in with:', credentials.email);
 
     try {
-      // Limpar estado anterior
-      cleanupAuthState();
-      
-      // Tentar logout global primeiro
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('Global signout attempt:', err);
-      }
-
-      // Aguardar um pouco para garantir que o estado foi limpo
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -94,16 +63,12 @@ const Auth: React.FC = () => {
       }
 
       if (data.user) {
-        console.log('User signed in successfully:', data.user);
+        console.log('User signed in successfully:', data.user.email);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
         });
-        
-        // Forçar recarregamento da página para garantir estado limpo
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 100);
+        // O redirecionamento será feito pelo useEffect quando o profile for carregado
       }
     } catch (error: any) {
       console.error('Erro no login:', error);

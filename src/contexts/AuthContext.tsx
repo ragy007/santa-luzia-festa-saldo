@@ -43,15 +43,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
-        throw error;
+        setProfile(null);
+        return;
       }
       
-      console.log('Profile fetched:', data);
-      setProfile(data);
+      if (data) {
+        console.log('Profile fetched:', data);
+        setProfile(data);
+      } else {
+        console.log('No profile found for user:', userId);
+        setProfile(null);
+      }
     } catch (error) {
       console.error('Erro ao buscar perfil:', error);
       setProfile(null);
@@ -63,13 +69,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session);
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email || 'no user');
+        
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
-          // Aguardar um pouco antes de buscar o perfil
+        if (session?.user && event !== 'SIGNED_OUT') {
+          // Aguardar um pouco antes de buscar o perfil para evitar race conditions
           setTimeout(() => {
             fetchProfile(session.user.id);
           }, 100);
@@ -82,17 +89,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Current session:', session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Current session:', session?.user?.email || 'no session');
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
