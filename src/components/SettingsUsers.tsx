@@ -49,7 +49,7 @@ const SettingsUsers: React.FC = () => {
       password: formData.password,
       name: formData.name,
       role: formData.role,
-      boothId: formData.boothId || undefined,
+      boothId: formData.boothId === 'none' ? undefined : formData.boothId,
       isActive: true
     });
 
@@ -159,7 +159,7 @@ const SettingsUsers: React.FC = () => {
                       <SelectValue placeholder="Selecione uma barraca" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma barraca</SelectItem>
+                      <SelectItem value="none">Nenhuma barraca</SelectItem>
                       {booths.map(booth => (
                         <SelectItem key={booth.id} value={booth.id}>
                           {booth.name}
