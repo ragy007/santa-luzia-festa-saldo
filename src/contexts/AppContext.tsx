@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 
@@ -75,11 +74,20 @@ function appReducer(state: AppState, action: Action): AppState {
       };
     case 'ADD_TRANSACTION':
       const newTransaction = action.payload;
+      console.log('Processing transaction:', newTransaction);
+      
       const updatedParticipants = state.participants.map(participant => {
         if (participant.id === newTransaction.participantId) {
-          const newBalance = newTransaction.type === 'credit' 
-            ? participant.balance + newTransaction.amount
-            : participant.balance - newTransaction.amount;
+          let newBalance;
+          if (newTransaction.type === 'credit') {
+            // Recarga - adiciona saldo
+            newBalance = participant.balance + newTransaction.amount;
+            console.log(`Credit: ${participant.balance} + ${newTransaction.amount} = ${newBalance}`);
+          } else {
+            // Compra - subtrai saldo
+            newBalance = participant.balance - newTransaction.amount;
+            console.log(`Debit: ${participant.balance} - ${newTransaction.amount} = ${newBalance}`);
+          }
           return { ...participant, balance: newBalance };
         }
         return participant;
@@ -87,7 +95,9 @@ function appReducer(state: AppState, action: Action): AppState {
 
       const updatedBooths = state.booths.map(booth => {
         if (newTransaction.type === 'debit' && newTransaction.booth === booth.name) {
-          return { ...booth, totalSales: booth.totalSales + newTransaction.amount };
+          const newTotalSales = booth.totalSales + newTransaction.amount;
+          console.log(`Booth ${booth.name} sales: ${booth.totalSales} + ${newTransaction.amount} = ${newTotalSales}`);
+          return { ...booth, totalSales: newTotalSales };
         }
         return booth;
       });
@@ -205,11 +215,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+    console.log('Adding transaction:', transaction);
     const newTransaction: Transaction = {
       ...transaction,
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toISOString(),
     };
+    console.log('New transaction created:', newTransaction);
     dispatch({ type: 'ADD_TRANSACTION', payload: newTransaction });
   };
 
