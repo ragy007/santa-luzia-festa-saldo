@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '../contexts/AppContext';
-import { ShoppingCart, Search, Minus, Plus, Receipt } from 'lucide-react';
+import { ShoppingCart, Search, Minus, Plus, Receipt, Scan } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Consumo: React.FC = () => {
@@ -46,6 +46,13 @@ const Consumo: React.FC = () => {
     }
   };
 
+  const handleQRCodeSearch = () => {
+    toast({
+      title: "QR Code Scanner",
+      description: "Em desenvolvimento - Use o número do cartão por enquanto",
+    });
+  };
+
   const addToCart = (product: any) => {
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
@@ -57,6 +64,11 @@ const Consumo: React.FC = () => {
     } else {
       setCart([...cart, { product, quantity: 1 }]);
     }
+    
+    toast({
+      title: "Produto adicionado",
+      description: `${product.name} foi adicionado ao carrinho`,
+    });
   };
 
   const addCustomProduct = () => {
@@ -91,6 +103,14 @@ const Consumo: React.FC = () => {
           : item
       ));
     }
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    toast({
+      title: "Carrinho limpo",
+      description: "Todos os produtos foram removidos do carrinho",
+    });
   };
 
   const getTotalAmount = () => {
@@ -215,6 +235,9 @@ const Consumo: React.FC = () => {
                     <Button onClick={handleSearch} variant="outline">
                       <Search className="h-4 w-4" />
                     </Button>
+                    <Button onClick={handleQRCodeSearch} variant="outline">
+                      <Scan className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {selectedParticipant && (
@@ -276,21 +299,27 @@ const Consumo: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-2">
-                    {boothProducts.map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-gray-500">{formatCurrency(product.price)}</p>
+                    {boothProducts.length > 0 ? (
+                      boothProducts.map((product) => (
+                        <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-sm text-gray-500">{formatCurrency(product.price)}</p>
+                          </div>
+                          <Button
+                            onClick={() => addToCart(product)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          onClick={() => addToCart(product)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">
+                        Nenhum produto cadastrado para esta barraca
+                      </p>
+                    )}
                   </div>
 
                   {/* Produto Personalizado */}
@@ -308,7 +337,7 @@ const Consumo: React.FC = () => {
                           min="0.01"
                           step="0.01"
                           placeholder="Preço"
-                          value={customProduct.price}
+                          value={customProduct.price || ''}
                           onChange={(e) => setCustomProduct(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                           className="flex-1"
                         />
@@ -327,9 +356,16 @@ const Consumo: React.FC = () => {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 mr-2 text-orange-600" />
-                  Carrinho de Compras
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ShoppingCart className="h-5 w-5 mr-2 text-orange-600" />
+                    Carrinho de Compras
+                  </div>
+                  {cart.length > 0 && (
+                    <Button onClick={clearCart} variant="outline" size="sm">
+                      Limpar
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
