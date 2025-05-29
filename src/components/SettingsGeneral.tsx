@@ -1,16 +1,18 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSettings } from '../contexts/SettingsContext';
-import { Save, Upload, Calendar, MapPin, Building, Heart, Clock, Power } from 'lucide-react';
+import { useApp } from '../contexts/AppContext';
+import { Save, Upload, Calendar, MapPin, Building, Heart, Clock, Power, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const SettingsGeneral: React.FC = () => {
   const { settings, updateSettings } = useSettings();
+  const { clearAllData } = useApp();
   const [formData, setFormData] = useState({
     name: settings.name,
     date: settings.date,
@@ -44,6 +46,35 @@ const SettingsGeneral: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleClearAllData = () => {
+    clearAllData();
+    toast({
+      title: "🗑️ Dados limpos!",
+      description: "Todos os dados da festa anterior foram removidos. Você pode começar uma nova festa.",
+    });
+  };
+
+  const handleNewFestival = () => {
+    // Limpar todos os dados
+    clearAllData();
+    
+    // Resetar configurações para uma nova festa
+    const today = new Date().toISOString().split('T')[0];
+    const newSettings = {
+      ...formData,
+      date: today,
+      isActive: true
+    };
+    
+    setFormData(newSettings);
+    updateSettings(newSettings);
+    
+    toast({
+      title: "🎉 Nova festa criada!",
+      description: "Todos os dados foram limpos e as configurações foram resetadas para uma nova festa.",
+    });
   };
 
   return (
@@ -99,6 +130,93 @@ const SettingsGeneral: React.FC = () => {
               Salvar Controle da Festa
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center text-orange-700">
+            <RefreshCw className="h-5 w-5 mr-2" />
+            Nova Festa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-orange-700 text-sm">
+            Use esta opção quando quiser começar uma nova festa. Isso irá limpar todos os dados 
+            (participantes, transações, vendas) e resetar as configurações.
+          </p>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-100">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Criar Nova Festa
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>🎉 Criar Nova Festa</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação irá:
+                  <br />• Limpar todos os participantes cadastrados
+                  <br />• Remover todas as transações e vendas
+                  <br />• Resetar estatísticas e relatórios
+                  <br />• Atualizar a data da festa para hoje
+                  <br /><br />
+                  <strong>Esta ação não pode ser desfeita!</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleNewFestival} className="bg-orange-600 hover:bg-orange-700">
+                  Sim, Criar Nova Festa
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center text-red-700">
+            <Trash2 className="h-5 w-5 mr-2" />
+            Limpeza de Dados
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-red-700 text-sm">
+            Use esta opção apenas se precisar limpar todos os dados sem alterar as configurações da festa atual.
+          </p>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-100">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Limpar Todos os Dados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>⚠️ Limpar Todos os Dados</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação irá remover permanentemente:
+                  <br />• Todos os participantes cadastrados
+                  <br />• Todas as transações (recargas e consumos)
+                  <br />• Histórico de vendas por barraca
+                  <br />• Dados de encerramento
+                  <br /><br />
+                  <strong>Esta ação não pode ser desfeita!</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearAllData} className="bg-red-600 hover:bg-red-700">
+                  Sim, Limpar Dados
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
 
