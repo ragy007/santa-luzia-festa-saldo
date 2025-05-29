@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettings } from '../contexts/SettingsContext';
-import { Settings, Palette, Users, Calendar } from 'lucide-react';
+import { Settings as SettingsIcon, Palette, Users, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import SettingsGeneral from '../components/SettingsGeneral';
 import SettingsTheme from '../components/SettingsTheme';
