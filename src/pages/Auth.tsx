@@ -35,6 +35,25 @@ const Auth: React.FC = () => {
     }
   }, [user, profile, navigate]);
 
+  // Função para limpar estado de autenticação
+  const cleanupAuthState = () => {
+    // Limpar localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Limpar sessionStorage
+    if (typeof sessionStorage !== 'undefined') {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -43,6 +62,19 @@ const Auth: React.FC = () => {
     console.log('Attempting sign in with:', credentials.email);
 
     try {
+      // Limpar estado anterior
+      cleanupAuthState();
+      
+      // Tentar logout global primeiro
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Global signout attempt:', err);
+      }
+
+      // Aguardar um pouco para garantir que o estado foi limpo
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -52,7 +84,13 @@ const Auth: React.FC = () => {
 
       if (error) {
         console.error('Auth error:', error);
-        throw error;
+        
+        if (error.message === 'Invalid login credentials') {
+          setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
+        } else {
+          setError(error.message || 'Erro ao fazer login. Tente novamente.');
+        }
+        return;
       }
 
       if (data.user) {
@@ -61,14 +99,15 @@ const Auth: React.FC = () => {
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
         });
+        
+        // Forçar recarregamento da página para garantir estado limpo
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
       }
     } catch (error: any) {
       console.error('Erro no login:', error);
-      if (error.message === 'Invalid login credentials') {
-        setError('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
-      } else {
-        setError(error.message || 'Erro ao fazer login. Tente novamente.');
-      }
+      setError('Erro inesperado ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -120,17 +159,20 @@ const Auth: React.FC = () => {
                   <button 
                     type="button"
                     onClick={() => handleTestCredentials('admin@festa.com', '123456')}
-                    className="block text-left hover:bg-blue-100 p-1 rounded"
+                    className="block text-left hover:bg-blue-100 p-2 rounded w-full text-sm border border-blue-200"
                   >
-                    <strong>Admin:</strong> admin@festa.com / 123456
+                    <strong>👑 Admin:</strong> admin@festa.com / 123456
                   </button>
                   <button 
                     type="button"
                     onClick={() => handleTestCredentials('operador@festa.com', '123456')}
-                    className="block text-left hover:bg-blue-100 p-1 rounded"
+                    className="block text-left hover:bg-blue-100 p-2 rounded w-full text-sm border border-blue-200"
                   >
-                    <strong>Operador:</strong> operador@festa.com / 123456
+                    <strong>👤 Operador:</strong> operador@festa.com / 123456
                   </button>
+                </div>
+                <div className="mt-2 text-xs text-blue-500">
+                  Clique em uma das opções acima para preencher automaticamente
                 </div>
               </AlertDescription>
             </Alert>
