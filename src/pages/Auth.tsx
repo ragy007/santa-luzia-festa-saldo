@@ -9,15 +9,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useEffect } from 'react';
-import { Church } from 'lucide-react';
+import { Church, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState({
-    email: '',
-    password: ''
+    email: 'admin@festa.com',
+    password: '123456'
   });
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -101,6 +101,15 @@ const Auth: React.FC = () => {
             <CardTitle className="text-center">Acesso ao Sistema</CardTitle>
           </CardHeader>
           <CardContent>
+            <Alert className="mb-4 border-blue-200 bg-blue-50">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-blue-600">
+                <strong>Credenciais padrão:</strong><br />
+                Email: admin@festa.com<br />
+                Senha: 123456
+              </AlertDescription>
+            </Alert>
+
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -133,14 +142,6 @@ const Auth: React.FC = () => {
               <Alert className="mt-4 border-red-200 bg-red-50">
                 <AlertDescription className="text-red-600">
                   {error}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {users.length === 0 && (
-              <Alert className="mt-4 border-yellow-200 bg-yellow-50">
-                <AlertDescription className="text-yellow-600">
-                  Nenhum usuário cadastrado ainda. Acesse as configurações para criar usuários.
                 </AlertDescription>
               </Alert>
             )}

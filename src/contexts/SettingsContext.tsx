@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FestivalSettings, UserAccount } from '@/types/settings';
 
@@ -21,6 +20,17 @@ const defaultSettings: FestivalSettings = {
     secondary: '#F8FAFC', 
     accent: '#E0E7FF'
   }
+};
+
+// Usuário administrador padrão
+const defaultAdminUser: UserAccount = {
+  id: 'admin-default',
+  email: 'admin@festa.com',
+  password: '123456',
+  name: 'Administrador',
+  role: 'admin',
+  isActive: true,
+  createdAt: new Date().toISOString()
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -52,10 +62,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (savedUsers) {
       try {
-        setUsers(JSON.parse(savedUsers));
+        const parsedUsers = JSON.parse(savedUsers);
+        // Se não há usuários salvos, criar o usuário padrão
+        if (parsedUsers.length === 0) {
+          setUsers([defaultAdminUser]);
+        } else {
+          setUsers(parsedUsers);
+        }
       } catch (error) {
         console.error('Erro ao carregar usuários:', error);
+        setUsers([defaultAdminUser]);
       }
+    } else {
+      // Se não há dados de usuários, criar o usuário padrão
+      setUsers([defaultAdminUser]);
     }
   }, []);
 
