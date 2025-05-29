@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
+import QRCodeScanner from '../components/QRCodeScanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ const Consumo: React.FC = () => {
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [operatorName, setOperatorName] = useState('');
   const [customProduct, setCustomProduct] = useState({ name: '', price: 0 });
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -47,10 +48,28 @@ const Consumo: React.FC = () => {
   };
 
   const handleQRCodeSearch = () => {
-    toast({
-      title: "QR Code Scanner",
-      description: "Em desenvolvimento - Use o número do cartão por enquanto",
-    });
+    setShowQRScanner(true);
+  };
+
+  const handleQRCodeScan = (cardNumber: string) => {
+    setSearchCard(cardNumber);
+    setShowQRScanner(false);
+    
+    const participant = getParticipantByCard(cardNumber);
+    if (participant) {
+      setSelectedParticipant(participant);
+      toast({
+        title: "Participante encontrado via QR Code!",
+        description: `${participant.name} - Saldo: ${formatCurrency(participant.balance)}`,
+      });
+    } else {
+      setSelectedParticipant(null);
+      toast({
+        title: "Participante não encontrado",
+        description: "QR Code não corresponde a nenhum participante cadastrado",
+        variant: "destructive",
+      });
+    }
   };
 
   const addToCart = (product: any) => {
@@ -429,6 +448,12 @@ const Consumo: React.FC = () => {
             </Card>
           </div>
         </div>
+
+        <QRCodeScanner
+          isOpen={showQRScanner}
+          onScan={handleQRCodeScan}
+          onClose={() => setShowQRScanner(false)}
+        />
       </div>
     </Layout>
   );
