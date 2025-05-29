@@ -14,7 +14,8 @@ import {
   BarChart3, 
   Settings,
   Church,
-  LogOut
+  LogOut,
+  Heart
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -61,20 +62,25 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg">
-                {settings.logoUrl ? (
-                  <img 
-                    src={settings.logoUrl} 
-                    alt="Logo" 
-                    className="h-6 w-6 object-contain"
-                  />
-                ) : (
+              <div className="flex gap-2">
+                <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg">
+                  {settings.logoUrl ? (
+                    <img 
+                      src={settings.logoUrl} 
+                      alt="Logo" 
+                      className="h-6 w-6 object-contain"
+                    />
+                  ) : (
+                    <Heart className="h-6 w-6 text-white" />
+                  )}
+                </div>
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-lg">
                   <Church className="h-6 w-6 text-white" />
-                )}
+                </div>
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {settings.title || '🎉 Festa Comunitária 2024'}
+                  {settings.title || 'Festa Comunitária 2024'}
                 </h1>
                 <p className="text-sm text-gray-500">
                   {settings.subtitle || 'Centro Social da Paróquia Santa Luzia'}

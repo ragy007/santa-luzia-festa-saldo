@@ -3,7 +3,7 @@ import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/AppContext';
-import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Heart, Church } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
@@ -38,11 +38,22 @@ const Dashboard: React.FC = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center py-6">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-full">
+              <Heart className="h-8 w-8 text-white" />
+            </div>
+            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-full">
+              <Church className="h-8 w-8 text-white" />
+            </div>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🎉 Festa Comunitária 2024
+            Festa Comunitária 2024
           </h1>
           <p className="text-lg text-gray-600">
             Centro Social da Paróquia Santa Luzia
+          </p>
+          <p className="text-sm text-blue-600 mt-2">
+            Sob a proteção de Santa Maria Auxiliadora e São João Bosco
           </p>
         </div>
 
@@ -174,13 +185,17 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Status da Festa */}
-        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
           <CardContent className="p-6">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-amber-800 mb-2">
-                🎪 Status da Festa: ATIVA
-              </h3>
-              <p className="text-amber-700">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Heart className="h-6 w-6 text-blue-600" />
+                <h3 className="text-xl font-bold text-blue-800">
+                  Status da Festa: ATIVA
+                </h3>
+                <Church className="h-6 w-6 text-purple-600" />
+              </div>
+              <p className="text-blue-700">
                 A festa está acontecendo! Use o menu lateral para gerenciar participantes, 
                 registrar vendas e acompanhar os relatórios em tempo real.
               </p>
