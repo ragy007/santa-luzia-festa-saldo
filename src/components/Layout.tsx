@@ -3,6 +3,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSettings } from '../contexts/SettingsContext';
 import { 
   Home, 
   UserPlus, 
@@ -22,6 +23,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings } = useSettings();
 
   const menuItems = [
     { path: '/', icon: Home, label: 'Dashboard', color: 'text-blue-600' },
@@ -31,7 +33,17 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600' },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600' },
     { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600' },
+    { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600' },
   ];
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -41,16 +53,26 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg">
-                <Church className="h-6 w-6 text-white" />
+                {settings.logoUrl ? (
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="Logo" 
+                    className="h-6 w-6 object-contain"
+                  />
+                ) : (
+                  <Church className="h-6 w-6 text-white" />
+                )}
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">Centro Social Paróquia Santa Luzia</h1>
-                <p className="text-sm text-gray-500">Sistema de Controle de Festa</p>
+                <h1 className="text-lg font-semibold text-gray-900">{settings.location}</h1>
+                <p className="text-sm text-gray-500">Sistema de Controle - {settings.name}</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900">{title}</p>
-              <p className="text-xs text-gray-500">Festa Comunitária 2024</p>
+              <p className="text-xs text-gray-500">
+                {formatDate(settings.date)} {settings.phone && `• ${settings.phone}`}
+              </p>
             </div>
           </div>
         </div>

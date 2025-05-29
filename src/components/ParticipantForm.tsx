@@ -13,6 +13,7 @@ const ParticipantForm: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
+    phone: '',
     initialBalance: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +54,7 @@ const ParticipantForm: React.FC = () => {
       addParticipant({
         name: formData.name || `Participante ${formData.cardNumber}`,
         cardNumber: formData.cardNumber,
+        phone: formData.phone,
         balance: formData.initialBalance,
         initialBalance: formData.initialBalance,
         isActive: true,
@@ -62,6 +64,7 @@ const ParticipantForm: React.FC = () => {
       setFormData({
         name: '',
         cardNumber: '',
+        phone: '',
         initialBalance: 0,
       });
 
@@ -102,6 +105,18 @@ const ParticipantForm: React.FC = () => {
               placeholder="Digite o nome completo"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="mt-1"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone">Telefone (opcional)</Label>
+            <Input
+              id="phone"
+              placeholder="(11) 99999-9999"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               className="mt-1"
               disabled={isSubmitting}
             />

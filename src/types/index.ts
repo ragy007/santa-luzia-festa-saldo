@@ -1,4 +1,3 @@
-
 export interface Participant {
   id: string;
   name: string;
@@ -8,6 +7,7 @@ export interface Participant {
   initialBalance: number;
   createdAt: string;
   isActive: boolean;
+  phone?: string; // Novo campo
 }
 
 export interface Transaction {

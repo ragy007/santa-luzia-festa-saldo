@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppProvider } from "./contexts/AppContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Cadastro from "./pages/Cadastro";
@@ -14,6 +15,7 @@ import Consumo from "./pages/Consumo";
 import Historico from "./pages/Historico";
 import Relatorios from "./pages/Relatorios";
 import Encerramento from "./pages/Encerramento";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -24,72 +26,82 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <AppProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cadastro"
-                element={
-                  <ProtectedRoute>
-                    <Cadastro />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recarga"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Recarga />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/consumo"
-                element={
-                  <ProtectedRoute>
-                    <Consumo />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/historico"
-                element={
-                  <ProtectedRoute>
-                    <Historico />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/relatorios"
-                element={
-                  <ProtectedRoute>
-                    <Relatorios />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/encerramento"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Encerramento />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AppProvider>
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <AppProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastro"
+                  element={
+                    <ProtectedRoute>
+                      <Cadastro />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/recarga"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Recarga />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/consumo"
+                  element={
+                    <ProtectedRoute>
+                      <Consumo />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/historico"
+                  element={
+                    <ProtectedRoute>
+                      <Historico />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/relatorios"
+                  element={
+                    <ProtectedRoute>
+                      <Relatorios />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/encerramento"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Encerramento />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </AppProvider>
+        </AuthProvider>
+      </SettingsProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
