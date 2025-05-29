@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FestivalSettings, UserAccount } from '@/types/settings';
 
@@ -10,6 +9,7 @@ interface SettingsContextType {
   updateUser: (userId: string, updates: Partial<UserAccount>) => void;
   deleteUser: (userId: string) => void;
   applyThemeColors: (colors: FestivalSettings['colors']) => void;
+  isFestivalActive: () => boolean;
 }
 
 const defaultSettings: FestivalSettings = {
@@ -19,6 +19,9 @@ const defaultSettings: FestivalSettings = {
   title: 'Festa Comunitária 2024',
   subtitle: 'Centro Social da Paróquia Santa Luzia',
   religiousMessage: 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco',
+  isActive: true,
+  startTime: '18:00',
+  endTime: '23:00',
   colors: {
     primary: '#4F46E5',
     secondary: '#F8FAFC', 
@@ -125,6 +128,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     root.style.setProperty('--accent', colors.accent);
   };
 
+  const isFestivalActive = () => {
+    if (!settings.isActive) return false;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5);
+    
+    // Verifica se é o dia da festa
+    if (today !== settings.date) return false;
+    
+    // Verifica se está dentro do horário
+    return currentTime >= settings.startTime && currentTime <= settings.endTime;
+  };
+
   // Aplicar cores do tema ao carregar
   useEffect(() => {
     applyThemeColors(settings.colors);
@@ -138,7 +155,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       addUser,
       updateUser,
       deleteUser,
-      applyThemeColors
+      applyThemeColors,
+      isFestivalActive
     }}>
       {children}
     </SettingsContext.Provider>

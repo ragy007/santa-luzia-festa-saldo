@@ -3,11 +3,11 @@ import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/AppContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Heart, Church } from 'lucide-react';
+import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Heart, Church, Power, AlertTriangle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
-  const { settings } = useSettings();
+  const { settings, isFestivalActive } = useSettings();
 
   const totalParticipants = participants.length;
   const activeParticipants = participants.filter(p => p.isActive).length;
@@ -34,6 +34,69 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const getFestivalStatus = () => {
+    const isActive = isFestivalActive();
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5);
+
+    if (!settings.isActive) {
+      return {
+        status: 'DESATIVADA',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100',
+        borderColor: 'border-red-200',
+        icon: Power,
+        message: 'A festa está desativada nas configurações. Ative para começar a usar o sistema.'
+      };
+    }
+
+    if (today !== settings.date) {
+      return {
+        status: 'AGENDADA',
+        color: 'text-blue-600',
+        bgColor: 'from-blue-50 to-blue-100',
+        borderColor: 'border-blue-200',
+        icon: Clock,
+        message: `A festa está agendada para ${new Date(settings.date).toLocaleDateString('pt-BR')} das ${settings.startTime} às ${settings.endTime}.`
+      };
+    }
+
+    if (currentTime < settings.startTime) {
+      return {
+        status: 'AGUARDANDO INÍCIO',
+        color: 'text-yellow-600',
+        bgColor: 'from-yellow-50 to-yellow-100',
+        borderColor: 'border-yellow-200',
+        icon: Clock,
+        message: `A festa começará às ${settings.startTime}. Prepare-se!`
+      };
+    }
+
+    if (currentTime > settings.endTime) {
+      return {
+        status: 'ENCERRADA',
+        color: 'text-gray-600',
+        bgColor: 'from-gray-50 to-gray-100',
+        borderColor: 'border-gray-200',
+        icon: AlertTriangle,
+        message: `A festa foi encerrada às ${settings.endTime}.`
+      };
+    }
+
+    return {
+      status: 'ATIVA',
+      color: 'text-green-600',
+      bgColor: 'from-green-50 to-green-100',
+      borderColor: 'border-green-200',
+      icon: Heart,
+      message: `A festa está acontecendo até às ${settings.endTime}! Use o menu lateral para gerenciar participantes e vendas.`
+    };
+  };
+
+  const festivalStatus = getFestivalStatus();
+  const StatusIcon = festivalStatus.icon;
+
   return (
     <Layout title="Dashboard">
       <div className="space-y-6">
@@ -59,6 +122,23 @@ const Dashboard: React.FC = () => {
             </p>
           )}
         </div>
+
+        {/* Status da Festa */}
+        <Card className={`bg-gradient-to-r ${festivalStatus.bgColor} ${festivalStatus.borderColor}`}>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <StatusIcon className={`h-6 w-6 ${festivalStatus.color}`} />
+                <h3 className={`text-xl font-bold ${festivalStatus.color}`}>
+                  Status da Festa: {festivalStatus.status}
+                </h3>
+              </div>
+              <p className={festivalStatus.color}>
+                {festivalStatus.message}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Estatísticas Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -186,25 +266,6 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Status da Festa */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <Heart className="h-6 w-6 text-blue-600" />
-                <h3 className="text-xl font-bold text-blue-800">
-                  Status da Festa: ATIVA
-                </h3>
-                <Church className="h-6 w-6 text-purple-600" />
-              </div>
-              <p className="text-blue-700">
-                A festa está acontecendo! Use o menu lateral para gerenciar participantes, 
-                registrar vendas e acompanhar os relatórios em tempo real.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );

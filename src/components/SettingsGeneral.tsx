@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useSettings } from '../contexts/SettingsContext';
-import { Save, Upload, Calendar, MapPin, Building, Heart } from 'lucide-react';
+import { Save, Upload, Calendar, MapPin, Building, Heart, Clock, Power } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const SettingsGeneral: React.FC = () => {
@@ -18,7 +19,10 @@ const SettingsGeneral: React.FC = () => {
     logoUrl: settings.logoUrl || '',
     title: settings.title || 'Festa Comunitária 2024',
     subtitle: settings.subtitle || 'Centro Social da Paróquia Santa Luzia',
-    religiousMessage: settings.religiousMessage || 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco'
+    religiousMessage: settings.religiousMessage || 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco',
+    isActive: settings.isActive,
+    startTime: settings.startTime,
+    endTime: settings.endTime
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,6 +48,60 @@ const SettingsGeneral: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Power className="h-5 w-5 mr-2 text-green-600" />
+            Controle da Festa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="festival-active"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                />
+                <Label htmlFor="festival-active">
+                  {formData.isActive ? 'Festa Ativada' : 'Festa Desativada'}
+                </Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="startTime">Horário de Início</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="endTime">Horário de Término</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full">
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Controle da Festa
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">

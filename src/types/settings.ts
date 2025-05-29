@@ -8,6 +8,9 @@ export interface FestivalSettings {
   title?: string;
   subtitle?: string;
   religiousMessage?: string;
+  isActive: boolean;
+  startTime: string;
+  endTime: string;
   colors: {
     primary: string;
     secondary: string;
