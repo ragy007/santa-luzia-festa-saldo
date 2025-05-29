@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Settings, UserAccount, Booth } from '@/types/settings';
 
@@ -13,6 +12,7 @@ interface SettingsContextType {
   addBooth: (booth: Omit<Booth, 'id'>) => void;
   updateBooth: (id: string, booth: Partial<Booth>) => void;
   deleteBooth: (id: string) => void;
+  isFestivalActive: () => boolean;
 }
 
 type Action =
@@ -34,6 +34,14 @@ const defaultSettings: Settings = {
   primaryColor: '#3B82F6',
   secondaryColor: '#10B981',
   theme: 'light',
+  date: new Date().toISOString().split('T')[0],
+  startTime: '18:00',
+  endTime: '23:00',
+  isActive: true,
+  phone: '',
+  title: 'Festa Comunitária 2024',
+  subtitle: 'Centro Social da Paróquia Santa Luzia',
+  religiousMessage: '',
 };
 
 // Dados padrão que sempre devem existir
@@ -251,6 +259,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dispatch({ type: 'DELETE_BOOTH', payload: id });
   };
 
+  const isFestivalActive = () => {
+    if (!state.settings.isActive) return false;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5);
+    
+    if (today !== state.settings.date) return false;
+    if (currentTime < state.settings.startTime) return false;
+    if (currentTime > state.settings.endTime) return false;
+    
+    return true;
+  };
+
   const value = {
     settings: state.settings,
     users: state.users,
@@ -262,6 +284,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addBooth,
     updateBooth,
     deleteBooth,
+    isFestivalActive,
   };
 
   return (
