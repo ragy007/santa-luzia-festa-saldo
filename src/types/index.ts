@@ -54,3 +54,24 @@ export interface AppState {
   closingOptions: ClosingOption[];
   festivalActive: boolean;
 }
+
+// Tipos do Supabase
+export interface SupabaseBooth {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupabaseProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  booth_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

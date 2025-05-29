@@ -2,12 +2,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
 
 interface AppContextType extends AppState {
   addParticipant: (participant: Omit<Participant, 'id' | 'createdAt' | 'qrCode'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => Promise<void>;
   updateParticipantBalance: (participantId: string, amount: number, type: 'credit' | 'debit') => void;
   getParticipantByCard: (cardNumber: string) => Participant | undefined;
   getParticipantTransactions: (participantId: string) => Transaction[];
@@ -15,6 +17,8 @@ interface AppContextType extends AppState {
   getTotalSales: () => number;
   getTotalActiveBalance: () => number;
   generateQRCode: (cardNumber: string) => string;
+  refreshProducts: () => Promise<void>;
+  refreshBooths: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -28,43 +32,114 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [state, setState] = useState<AppState>({
     participants: [],
     transactions: [],
-    products: [
-      { id: '1', name: 'Refrigerante', price: 5.00, booth: 'Bebidas', isActive: true },
-      { id: '2', name: 'Pastel', price: 8.00, booth: 'Comidas', isActive: true },
-      { id: '3', name: 'Cerveja', price: 7.00, booth: 'Bebidas', isActive: true },
-      { id: '4', name: 'Espetinho', price: 12.00, booth: 'Churrasco', isActive: true },
-      { id: '5', name: 'Açaí', price: 10.00, booth: 'Sobremesas', isActive: true },
-    ],
-    booths: [
-      { id: '1', name: 'Bebidas', isActive: true, totalSales: 0 },
-      { id: '2', name: 'Comidas', isActive: true, totalSales: 0 },
-      { id: '3', name: 'Churrasco', isActive: true, totalSales: 0 },
-      { id: '4', name: 'Sobremesas', isActive: true, totalSales: 0 },
-    ],
+    products: [],
+    booths: [],
     closingOptions: [],
     festivalActive: true,
   });
 
-  // Carregar dados do localStorage ao inicializar
+  // Buscar barracas do Supabase
+  const fetchBooths = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('booths')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        console.error('Erro ao buscar barracas:', error);
+        return;
+      }
+
+      const boothsData: Booth[] = data.map(booth => ({
+        id: booth.id,
+        name: booth.name,
+        isActive: booth.is_active,
+        totalSales: 0 // Será calculado baseado nas transações
+      }));
+
+      setState(prev => ({ ...prev, booths: boothsData }));
+    } catch (error) {
+      console.error('Erro ao buscar barracas:', error);
+    }
+  };
+
+  // Buscar produtos do Supabase
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          price,
+          is_active,
+          booths!inner (
+            name
+          )
+        `)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        console.error('Erro ao buscar produtos:', error);
+        return;
+      }
+
+      const productsData: Product[] = data.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        booth: product.booths.name,
+        isActive: product.is_active
+      }));
+
+      setState(prev => ({ ...prev, products: productsData }));
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+    }
+  };
+
+  // Carregar dados quando o usuário estiver autenticado
+  useEffect(() => {
+    if (user) {
+      fetchBooths();
+      fetchProducts();
+    }
+  }, [user]);
+
+  // Carregar dados do localStorage ao inicializar (para participantes e transações)
   useEffect(() => {
     const savedData = localStorage.getItem('paroquia-festa-data');
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
-        setState(prevState => ({ ...prevState, ...parsedData }));
+        setState(prevState => ({ 
+          ...prevState, 
+          participants: parsedData.participants || [],
+          transactions: parsedData.transactions || [],
+          closingOptions: parsedData.closingOptions || []
+        }));
       } catch (error) {
         console.error('Erro ao carregar dados salvos:', error);
       }
     }
   }, []);
 
-  // Salvar dados no localStorage sempre que o estado mudar
+  // Salvar dados no localStorage sempre que o estado mudar (apenas dados locais)
   useEffect(() => {
-    localStorage.setItem('paroquia-festa-data', JSON.stringify(state));
-  }, [state]);
+    const dataToSave = {
+      participants: state.participants,
+      transactions: state.transactions,
+      closingOptions: state.closingOptions
+    };
+    localStorage.setItem('paroquia-festa-data', JSON.stringify(dataToSave));
+  }, [state.participants, state.transactions, state.closingOptions]);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -144,39 +219,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: generateId(),
-    };
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      // Buscar ID da barraca
+      const { data: boothData, error: boothError } = await supabase
+        .from('booths')
+        .select('id')
+        .eq('name', product.booth)
+        .single();
 
-    setState(prev => ({
-      ...prev,
-      products: [...prev.products, newProduct],
-    }));
+      if (boothError || !boothData) {
+        toast({
+          title: "Erro!",
+          description: "Barraca não encontrada.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    toast({
-      title: "Produto adicionado!",
-      description: `${product.name} foi adicionado ao cardápio.`,
-    });
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          name: product.name,
+          price: product.price,
+          booth_id: boothData.id,
+          is_active: product.isActive
+        });
+
+      if (error) {
+        console.error('Erro ao adicionar produto:', error);
+        toast({
+          title: "Erro!",
+          description: "Erro ao adicionar produto.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchProducts(); // Recarregar produtos
+
+      toast({
+        title: "Produto adicionado!",
+        description: `${product.name} foi adicionado ao cardápio.`,
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar produto:', error);
+      toast({
+        title: "Erro!",
+        description: "Erro ao adicionar produto.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const addBooth = (booth: Omit<Booth, 'id' | 'totalSales'>) => {
-    const newBooth: Booth = {
-      ...booth,
-      id: generateId(),
-      totalSales: 0,
-    };
+  const addBooth = async (booth: Omit<Booth, 'id' | 'totalSales'>) => {
+    try {
+      const { error } = await supabase
+        .from('booths')
+        .insert({
+          name: booth.name,
+          is_active: booth.isActive
+        });
 
-    setState(prev => ({
-      ...prev,
-      booths: [...prev.booths, newBooth],
-    }));
+      if (error) {
+        console.error('Erro ao adicionar barraca:', error);
+        toast({
+          title: "Erro!",
+          description: "Erro ao adicionar barraca.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    toast({
-      title: "Barraca adicionada!",
-      description: `${booth.name} foi adicionada à festa.`,
-    });
+      await fetchBooths(); // Recarregar barracas
+
+      toast({
+        title: "Barraca adicionada!",
+        description: `${booth.name} foi adicionada à festa.`,
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar barraca:', error);
+      toast({
+        title: "Erro!",
+        description: "Erro ao adicionar barraca.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getParticipantByCard = (cardNumber: string) => {
@@ -214,6 +342,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return state.participants.reduce((total, p) => total + p.balance, 0);
   };
 
+  const refreshProducts = async () => {
+    await fetchProducts();
+  };
+
+  const refreshBooths = async () => {
+    await fetchBooths();
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -229,6 +365,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getTotalSales,
         getTotalActiveBalance,
         generateQRCode,
+        refreshProducts,
+        refreshBooths,
       }}
     >
       {children}
