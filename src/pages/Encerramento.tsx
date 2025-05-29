@@ -72,14 +72,11 @@ const Encerramento: React.FC = () => {
 
     const closingOption = {
       participantId: selectedParticipant.id,
-      participantName: selectedParticipant.name,
-      cardNumber: selectedParticipant.cardNumber,
-      remainingBalance: selectedParticipant.balance,
-      option: closingData.option,
+      option: closingData.option as 'refund' | 'gift' | 'donation',
+      amount: selectedParticipant.balance,
       cardReturned: closingData.cardReturned,
-      depositRefund: closingData.depositRefund,
-      observations: closingData.observations,
-      operatorName: profile?.full_name || 'Administrador'
+      depositRefunded: closingData.depositRefund,
+      notes: closingData.observations
     };
 
     addClosingOption(closingOption);
@@ -224,10 +221,9 @@ const Encerramento: React.FC = () => {
                         <SelectValue placeholder="Selecione uma opção" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="reembolso">Reembolso em Dinheiro</SelectItem>
-                        <SelectItem value="doacao">Doação para a Paróquia</SelectItem>
-                        <SelectItem value="credito_proximo">Crédito para Próximo Evento</SelectItem>
-                        <SelectItem value="desconto_contribuicao">Desconto em Contribuição</SelectItem>
+                        <SelectItem value="refund">Reembolso em Dinheiro</SelectItem>
+                        <SelectItem value="donation">Doação para a Paróquia</SelectItem>
+                        <SelectItem value="gift">Crédito para Próximo Evento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -62,14 +62,11 @@ export const useClosing = () => {
 
     const closingOption = {
       participantId: selectedParticipant.id,
-      participantName: selectedParticipant.name,
-      cardNumber: selectedParticipant.cardNumber,
-      remainingBalance: selectedParticipant.balance,
-      option: closingData.option,
+      option: closingData.option as 'refund' | 'gift' | 'donation',
+      amount: selectedParticipant.balance,
       cardReturned: closingData.cardReturned,
-      depositRefund: closingData.depositRefund,
-      observations: closingData.observations,
-      operatorName: operatorName
+      depositRefunded: closingData.depositRefund,
+      notes: closingData.observations
     };
 
     addClosingOption(closingOption);
