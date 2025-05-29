@@ -16,6 +16,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, loading } = useAuth();
 
+  console.log('ProtectedRoute - User:', user);
+  console.log('ProtectedRoute - Loading:', loading);
+  console.log('ProtectedRoute - RequireAdmin:', requireAdmin);
+  console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -28,10 +33,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!user) {
+    console.log('ProtectedRoute - No user, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
+  console.log('ProtectedRoute - User role:', user.role);
+
   if (requireAdmin && user.role !== 'admin') {
+    console.log('ProtectedRoute - Admin required but user is not admin');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -43,7 +52,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!allowedRoles.includes(user.role as any)) {
+  if (!allowedRoles.includes(user.role as 'admin' | 'operator')) {
+    console.log('ProtectedRoute - User role not in allowed roles');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -55,6 +65,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  console.log('ProtectedRoute - Access granted');
   return <>{children}</>;
 };
 

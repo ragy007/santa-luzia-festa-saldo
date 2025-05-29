@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppProvider } from "./contexts/AppContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
@@ -45,7 +45,7 @@ const App = () => (
                 <Route
                   path="/cadastro"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute requireAdmin>
                       <Cadastro />
                     </ProtectedRoute>
                   }
@@ -69,7 +69,7 @@ const App = () => (
                 <Route
                   path="/historico"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute requireAdmin>
                       <Historico />
                     </ProtectedRoute>
                   }
@@ -77,7 +77,7 @@ const App = () => (
                 <Route
                   path="/relatorios"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute requireAdmin>
                       <Relatorios />
                     </ProtectedRoute>
                   }

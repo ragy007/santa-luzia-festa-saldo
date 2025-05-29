@@ -1,3 +1,4 @@
+
 export interface Participant {
   id: string;
   name: string;
@@ -27,6 +28,7 @@ export interface Product {
   price: number;
   booth: string;
   isActive: boolean;
+  isFree?: boolean; // Add isFree property
 }
 
 export interface ClosingOption {
