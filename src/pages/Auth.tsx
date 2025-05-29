@@ -18,19 +18,24 @@ const Auth: React.FC = () => {
     password: '123456'
   });
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
 
   // Redirecionar se já estiver logado
   useEffect(() => {
-    if (user && profile) {
+    // Aguardar o carregamento da autenticação terminar
+    if (!authLoading && user && profile) {
       console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
-      if (profile.role === 'admin') {
-        navigate('/dashboard');
-      } else {
-        navigate('/consumo');
-      }
+      
+      // Usar setTimeout para garantir que o redirecionamento aconteça após o render
+      setTimeout(() => {
+        if (profile.role === 'admin') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/consumo', { replace: true });
+        }
+      }, 100);
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,6 +83,18 @@ const Auth: React.FC = () => {
     setCredentials({ email, password });
     setError(null);
   };
+
+  // Mostrar loading enquanto verifica autenticação
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
