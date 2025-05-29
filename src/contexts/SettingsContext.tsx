@@ -16,8 +16,9 @@ const defaultSettings: FestivalSettings = {
   name: 'Festa Comunitária',
   date: new Date().toISOString().split('T')[0],
   location: 'Centro Social Paróquia Santa Luzia',
-  title: '🎉 Festa Comunitária 2024',
+  title: 'Festa Comunitária 2024',
   subtitle: 'Centro Social da Paróquia Santa Luzia',
+  religiousMessage: 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco',
   colors: {
     primary: '#4F46E5',
     secondary: '#F8FAFC', 

@@ -7,6 +7,7 @@ export interface FestivalSettings {
   phone?: string;
   title?: string;
   subtitle?: string;
+  religiousMessage?: string;
   colors: {
     primary: string;
     secondary: string;

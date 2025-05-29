@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '../contexts/SettingsContext';
-import { Save, Upload, Calendar, MapPin, Building } from 'lucide-react';
+import { Save, Upload, Calendar, MapPin, Building, Heart } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const SettingsGeneral: React.FC = () => {
@@ -16,8 +16,9 @@ const SettingsGeneral: React.FC = () => {
     location: settings.location,
     phone: settings.phone || '',
     logoUrl: settings.logoUrl || '',
-    title: settings.title || '🎉 Festa Comunitária 2024',
-    subtitle: settings.subtitle || 'Centro Social da Paróquia Santa Luzia'
+    title: settings.title || 'Festa Comunitária 2024',
+    subtitle: settings.subtitle || 'Centro Social da Paróquia Santa Luzia',
+    religiousMessage: settings.religiousMessage || 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,26 +47,27 @@ const SettingsGeneral: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Building className="h-5 w-5 mr-2" />
-            Título e Apresentação
+            <Heart className="h-5 w-5 mr-2 text-blue-600" />
+            Personalização da Festa
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label htmlFor="title">Título Principal</Label>
+                <Label htmlFor="title">Título Principal da Festa</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="🎉 Festa Comunitária 2024"
+                  placeholder="Festa Comunitária 2024"
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1">Aparece no cabeçalho e dashboard</p>
               </div>
 
               <div>
-                <Label htmlFor="subtitle">Subtítulo/Local</Label>
+                <Label htmlFor="subtitle">Local da Festa</Label>
                 <Input
                   id="subtitle"
                   value={formData.subtitle}
@@ -73,12 +75,25 @@ const SettingsGeneral: React.FC = () => {
                   placeholder="Centro Social da Paróquia Santa Luzia"
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1">Nome do local onde acontece a festa</p>
+              </div>
+
+              <div>
+                <Label htmlFor="religiousMessage">Mensagem Religiosa</Label>
+                <Input
+                  id="religiousMessage"
+                  value={formData.religiousMessage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, religiousMessage: e.target.value }))}
+                  placeholder="Sob a proteção de Santa Maria Auxiliadora e São João Bosco"
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Mensagem de proteção ou invocação religiosa</p>
               </div>
             </div>
 
             <Button type="submit" className="w-full">
               <Save className="h-4 w-4 mr-2" />
-              Salvar Título e Subtítulo
+              Salvar Personalização
             </Button>
           </form>
         </CardContent>
@@ -88,14 +103,14 @@ const SettingsGeneral: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Building className="h-5 w-5 mr-2" />
-            Informações da Festa
+            Informações Gerais
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Nome da Festa</Label>
+                <Label htmlFor="name">Nome do Evento</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -118,12 +133,12 @@ const SettingsGeneral: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="location">Local da Festa</Label>
+              <Label htmlFor="location">Endereço Completo</Label>
               <Input
                 id="location"
                 value={formData.location}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Ex: Centro Social Paróquia Santa Luzia"
+                placeholder="Ex: Rua das Flores, 123 - Centro"
                 className="mt-1"
               />
             </div>
@@ -163,7 +178,7 @@ const SettingsGeneral: React.FC = () => {
 
             <Button type="submit" className="w-full">
               <Save className="h-4 w-4 mr-2" />
-              Salvar Configurações
+              Salvar Informações Gerais
             </Button>
           </form>
         </CardContent>

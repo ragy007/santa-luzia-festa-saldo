@@ -1,12 +1,13 @@
-
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/AppContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Heart, Church } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
+  const { settings } = useSettings();
 
   const totalParticipants = participants.length;
   const activeParticipants = participants.filter(p => p.isActive).length;
@@ -47,14 +48,16 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Festa Comunitária 2024
+            {settings.title || 'Festa Comunitária 2024'}
           </h1>
           <p className="text-lg text-gray-600">
-            Centro Social da Paróquia Santa Luzia
+            {settings.subtitle || 'Centro Social da Paróquia Santa Luzia'}
           </p>
-          <p className="text-sm text-blue-600 mt-2">
-            Sob a proteção de Santa Maria Auxiliadora e São João Bosco
-          </p>
+          {settings.religiousMessage && (
+            <p className="text-sm text-blue-600 mt-2">
+              {settings.religiousMessage}
+            </p>
+          )}
         </div>
 
         {/* Estatísticas Principais */}
