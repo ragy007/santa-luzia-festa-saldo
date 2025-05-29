@@ -6,22 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useApp } from '../contexts/AppContext';
-import { AlertTriangle, CheckCircle, DollarSign, Users, CreditCard, X } from 'lucide-react';
+import { Settings, Search, DollarSign, Gift, Heart, ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Encerramento: React.FC = () => {
-  const { participants, transactions, addClosingOption, getTotalSales, getTotalActiveBalance, getParticipantByCard } = useApp();
-  const { profile } = useAuth();
+  const { participants, getParticipantByCard, addClosingOption, closingOptions } = useApp();
   const [searchCard, setSearchCard] = useState('');
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [closingData, setClosingData] = useState({
     option: '',
     cardReturned: false,
-    depositRefund: false,
-    observations: ''
+    depositRefunded: false,
+    notes: ''
   });
 
   const handleSearch = () => {
@@ -37,10 +36,21 @@ const Encerramento: React.FC = () => {
     const participant = getParticipantByCard(searchCard);
     if (participant) {
       setSelectedParticipant(participant);
-      toast({
-        title: "Participante encontrado!",
-        description: `${participant.name} - Saldo: ${formatCurrency(participant.balance)}`,
-      });
+      
+      // Verificar se já foi processado
+      const alreadyProcessed = closingOptions.find(c => c.participantId === participant.id);
+      if (alreadyProcessed) {
+        toast({
+          title: "Já processado",
+          description: `Este cartão já foi processado em ${new Date(alreadyProcessed.timestamp).toLocaleString('pt-BR')}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Participante encontrado!",
+          description: `${participant.name} - Saldo: ${formatCurrency(participant.balance)}`,
+        });
+      }
     } else {
       setSelectedParticipant(null);
       toast({
@@ -52,34 +62,34 @@ const Encerramento: React.FC = () => {
   };
 
   const handleClosing = () => {
-    if (!selectedParticipant) {
+    if (!selectedParticipant || !closingData.option) {
       toast({
         title: "Erro",
-        description: "Selecione um participante primeiro",
+        description: "Selecione um participante e uma opção de encerramento",
         variant: "destructive",
       });
       return;
     }
 
-    if (!closingData.option) {
+    // Verificar se já foi processado
+    const alreadyProcessed = closingOptions.find(c => c.participantId === selectedParticipant.id);
+    if (alreadyProcessed) {
       toast({
         title: "Erro",
-        description: "Selecione uma opção de encerramento",
+        description: "Este cartão já foi processado",
         variant: "destructive",
       });
       return;
     }
 
-    const closingOption = {
+    addClosingOption({
       participantId: selectedParticipant.id,
       option: closingData.option as 'refund' | 'gift' | 'donation',
       amount: selectedParticipant.balance,
       cardReturned: closingData.cardReturned,
-      depositRefunded: closingData.depositRefund,
-      notes: closingData.observations
-    };
-
-    addClosingOption(closingOption);
+      depositRefunded: closingData.depositRefunded,
+      notes: closingData.notes
+    });
 
     // Limpar formulário
     setSelectedParticipant(null);
@@ -87,13 +97,8 @@ const Encerramento: React.FC = () => {
     setClosingData({
       option: '',
       cardReturned: false,
-      depositRefund: false,
-      observations: ''
-    });
-
-    toast({
-      title: "Encerramento registrado!",
-      description: `Opção "${closingData.option}" registrada para ${selectedParticipant.name}`,
+      depositRefunded: false,
+      notes: ''
     });
   };
 
@@ -104,71 +109,94 @@ const Encerramento: React.FC = () => {
     }).format(value);
   };
 
-  const totalSales = getTotalSales();
-  const totalActiveBalance = getTotalActiveBalance();
-  const participantsWithBalance = participants.filter(p => p.balance > 0);
+  const formatDateTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString('pt-BR');
+  };
+
+  const getOptionLabel = (option: string) => {
+    switch (option) {
+      case 'refund': return 'Reembolso';
+      case 'gift': return 'Brinde';
+      case 'donation': return 'Doação';
+      default: return option;
+    }
+  };
+
+  const getOptionIcon = (option: string) => {
+    switch (option) {
+      case 'refund': return <DollarSign className="h-4 w-4 text-green-600" />;
+      case 'gift': return <Gift className="h-4 w-4 text-purple-600" />;
+      case 'donation': return <Heart className="h-4 w-4 text-red-600" />;
+      default: return null;
+    }
+  };
+
+  const totalRefunds = closingOptions.filter(c => c.option === 'refund').reduce((sum, c) => sum + c.amount, 0);
+  const totalDonations = closingOptions.filter(c => c.option === 'donation').reduce((sum, c) => sum + c.amount, 0);
+  const totalGifts = closingOptions.filter(c => c.option === 'gift').reduce((sum, c) => sum + c.amount, 0);
+  const processedCount = closingOptions.length;
+  const totalParticipants = participants.length;
 
   return (
     <Layout title="Encerramento da Festa">
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            🏁 Encerramento da Festa
+            🎊 Encerramento da Festa
           </h1>
           <p className="text-gray-600">
-            Gerencie o encerramento dos cartões e saldos restantes
+            Processe os saldos restantes dos participantes
           </p>
         </div>
 
-        {/* Resumo Geral */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-blue-50 border-blue-200">
+        {/* Estatísticas do Encerramento */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
             <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <DollarSign className="h-6 w-6 text-blue-600 mr-2" />
-                <h3 className="font-semibold text-blue-800">Total de Vendas</h3>
-              </div>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalSales)}</p>
+              <h3 className="font-semibold text-blue-800 mb-2">Processados</h3>
+              <p className="text-2xl font-bold text-blue-600">{processedCount}</p>
+              <p className="text-sm text-blue-700">de {totalParticipants} participantes</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-orange-50 border-orange-200">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
             <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CreditCard className="h-6 w-6 text-orange-600 mr-2" />
-                <h3 className="font-semibold text-orange-800">Saldo Total em Cartões</h3>
-              </div>
-              <p className="text-2xl font-bold text-orange-600">{formatCurrency(totalActiveBalance)}</p>
+              <h3 className="font-semibold text-green-800 mb-2">Reembolsos</h3>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRefunds)}</p>
+              <p className="text-sm text-green-700">{closingOptions.filter(c => c.option === 'refund').length} cartões</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-red-50 border-red-200">
+          <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200">
             <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Users className="h-6 w-6 text-red-600 mr-2" />
-                <h3 className="font-semibold text-red-800">Cartões com Saldo</h3>
-              </div>
-              <p className="text-2xl font-bold text-red-600">{participantsWithBalance.length}</p>
+              <h3 className="font-semibold text-red-800 mb-2">Doações</h3>
+              <p className="text-2xl font-bold text-red-600">{formatCurrency(totalDonations)}</p>
+              <p className="text-sm text-red-700">{closingOptions.filter(c => c.option === 'donation').length} cartões</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
+            <CardContent className="p-4 text-center">
+              <h3 className="font-semibold text-purple-800 mb-2">Brindes</h3>
+              <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalGifts)}</p>
+              <p className="text-sm text-purple-700">{closingOptions.filter(c => c.option === 'gift').length} cartões</p>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Formulário de Encerramento */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                Encerramento Individual
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Busca de Participante */}
-              <div>
-                <Label htmlFor="searchCard">Buscar Cartão</Label>
-                <div className="flex gap-2 mt-1">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Search className="h-5 w-5 mr-2 text-blue-600" />
+                  Buscar Participante
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
                   <Input
-                    id="searchCard"
                     placeholder="Digite o número do cartão"
                     value={searchCard}
                     onChange={(e) => setSearchCard(e.target.value)}
@@ -176,169 +204,189 @@ const Encerramento: React.FC = () => {
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                   <Button onClick={handleSearch} variant="outline">
-                    Buscar
+                    <Search className="h-4 w-4" />
                   </Button>
-                  {selectedParticipant && (
-                    <Button 
-                      onClick={() => {
-                        setSelectedParticipant(null);
-                        setSearchCard('');
-                      }} 
-                      variant="outline"
-                      size="icon"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Informações do Participante */}
-              {selectedParticipant && (
-                <Card className="bg-gray-50 border-gray-200">
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">Participante Selecionado</h3>
-                    <div className="space-y-1">
+            {selectedParticipant && (
+              <>
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-blue-800 mb-4">Participante Selecionado</h3>
+                    <div className="space-y-2">
                       <p><span className="font-medium">Nome:</span> {selectedParticipant.name}</p>
                       <p><span className="font-medium">Cartão:</span> {selectedParticipant.cardNumber}</p>
-                      <p><span className="font-medium">Saldo Restante:</span> 
-                        <span className={`font-bold ml-1 ${selectedParticipant.balance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                          {formatCurrency(selectedParticipant.balance)}
-                        </span>
-                      </p>
+                      <p><span className="font-medium">Saldo Restante:</span> <span className="text-green-600 font-bold">{formatCurrency(selectedParticipant.balance)}</span></p>
                     </div>
                   </CardContent>
                 </Card>
-              )}
 
-              {/* Formulário de Encerramento */}
-              {selectedParticipant && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="option">Opção de Encerramento *</Label>
-                    <Select value={closingData.option} onValueChange={(value) => setClosingData(prev => ({ ...prev, option: value }))}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Selecione uma opção" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="refund">Reembolso em Dinheiro</SelectItem>
-                        <SelectItem value="donation">Doação para a Paróquia</SelectItem>
-                        <SelectItem value="gift">Crédito para Próximo Evento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="cardReturned"
-                        checked={closingData.cardReturned}
-                        onChange={(e) => setClosingData(prev => ({ ...prev, cardReturned: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <Label htmlFor="cardReturned">Cartão devolvido</Label>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Settings className="h-5 w-5 mr-2 text-purple-600" />
+                      Opções de Encerramento
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="option">O que fazer com o saldo restante? *</Label>
+                      <Select value={closingData.option} onValueChange={(value) => setClosingData(prev => ({ ...prev, option: value }))}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Selecione uma opção" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="refund">💵 Reembolso total do saldo</SelectItem>
+                          <SelectItem value="gift">🎁 Troca por brinde</SelectItem>
+                          <SelectItem value="donation">❤️ Doação para a Paróquia</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="depositRefund"
-                        checked={closingData.depositRefund}
-                        onChange={(e) => setClosingData(prev => ({ ...prev, depositRefund: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <Label htmlFor="depositRefund">Caução devolvida</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="cardReturned"
+                          checked={closingData.cardReturned}
+                          onCheckedChange={(checked) => setClosingData(prev => ({ ...prev, cardReturned: checked as boolean }))}
+                        />
+                        <Label htmlFor="cardReturned">Cartão/pulseira foi devolvido</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="depositRefunded"
+                          checked={closingData.depositRefunded}
+                          onCheckedChange={(checked) => setClosingData(prev => ({ ...prev, depositRefunded: checked as boolean }))}
+                        />
+                        <Label htmlFor="depositRefunded">Valor da caução foi reembolsado</Label>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <Label htmlFor="observations">Observações</Label>
-                    <Textarea
-                      id="observations"
-                      placeholder="Observações adicionais sobre o encerramento..."
-                      value={closingData.observations}
-                      onChange={(e) => setClosingData(prev => ({ ...prev, observations: e.target.value }))}
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="notes">Observações (opcional)</Label>
+                      <Textarea
+                        id="notes"
+                        placeholder="Adicione observações sobre o encerramento..."
+                        value={closingData.notes}
+                        onChange={(e) => setClosingData(prev => ({ ...prev, notes: e.target.value }))}
+                        className="mt-1"
+                      />
+                    </div>
 
-                  <Button 
-                    onClick={handleClosing} 
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                    disabled={!closingData.option}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Registrar Encerramento
-                  </Button>
+                    <Button
+                      onClick={handleClosing}
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                      disabled={!closingData.option}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Processar Encerramento
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          {/* Lista de Encerramentos Processados */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ArrowLeft className="h-5 w-5 mr-2 text-gray-600" />
+                  Encerramentos Processados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {closingOptions.length > 0 ? (
+                    closingOptions
+                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                      .map((closing) => {
+                        const participant = participants.find(p => p.id === closing.participantId);
+                        return (
+                          <div key={closing.participantId} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-900">{participant?.name}</h4>
+                              <div className="flex items-center space-x-2">
+                                {getOptionIcon(closing.option)}
+                                <span className="font-bold">{formatCurrency(closing.amount)}</span>
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-500 space-y-1">
+                              <p>
+                                <span className="font-medium">Opção:</span> {getOptionLabel(closing.option)}
+                              </p>
+                              <p>
+                                <span className="font-medium">Cartão:</span> {participant?.cardNumber}
+                              </p>
+                              <p>
+                                <span className="font-medium">Processado em:</span> {formatDateTime(closing.timestamp)}
+                              </p>
+                              <div className="flex space-x-4 mt-2">
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  closing.cardReturned ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {closing.cardReturned ? 'Cartão devolvido' : 'Cartão não devolvido'}
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  closing.depositRefunded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {closing.depositRefunded ? 'Caução reembolsada' : 'Caução não reembolsada'}
+                                </span>
+                              </div>
+                              {closing.notes && (
+                                <p className="mt-2">
+                                  <span className="font-medium">Obs:</span> {closing.notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum encerramento processado ainda</p>
+                      <p className="text-sm">Use o formulário ao lado para processar os participantes</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Participantes com Saldo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
-                Cartões com Saldo Pendente ({participantsWithBalance.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {participantsWithBalance.length > 0 ? (
-                  participantsWithBalance.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                      <div>
-                        <p className="font-medium text-gray-900">{participant.name}</p>
-                        <p className="text-sm text-gray-500">Cartão: {participant.cardNumber}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-orange-600">{formatCurrency(participant.balance)}</p>
-                        <Button
-                          onClick={() => {
-                            setSearchCard(participant.cardNumber);
-                            setSelectedParticipant(participant);
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="mt-1"
-                        >
-                          Encerrar
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-green-500" />
-                    <p className="text-lg font-medium">Todos os cartões foram encerrados!</p>
-                    <p className="text-sm">Não há saldos pendentes</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Alerta se há saldos pendentes */}
-        {participantsWithBalance.length > 0 && (
-          <Card className="bg-yellow-50 border-yellow-200">
-            <CardContent className="p-4">
-              <div className="flex items-start">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3 mt-0.5" />
+        {/* Resumo Final */}
+        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-amber-800 mb-4">
+                📋 Resumo do Encerramento
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div>
-                  <h3 className="font-semibold text-yellow-800">Atenção: Saldos Pendentes</h3>
-                  <p className="text-yellow-700 text-sm">
-                    Ainda existem {participantsWithBalance.length} cartões com saldo não utilizado totalizando {formatCurrency(totalActiveBalance)}. 
-                    Certifique-se de processar todos os encerramentos antes de finalizar o evento.
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRefunds)}</p>
+                  <p className="text-green-700">em reembolsos</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(totalDonations)}</p>
+                  <p className="text-red-700">em doações para a Paróquia</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalGifts)}</p>
+                  <p className="text-purple-700">convertidos em brindes</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <p className="text-amber-700 mt-4">
+                {processedCount} de {totalParticipants} participantes processados
+                {processedCount === totalParticipants && " ✅ Todos processados!"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
