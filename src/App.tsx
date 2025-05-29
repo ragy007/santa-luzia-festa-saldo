@@ -25,7 +25,7 @@ const queryClient = new QueryClient();
 
 // Componente para redirecionar baseado no role
 const RoleBasedRedirect = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -38,14 +38,14 @@ const RoleBasedRedirect = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return <Navigate to="/auth" replace />;
   }
 
   // Redirecionar baseado no role
-  if (user.role === 'admin') {
+  if (profile.role === 'admin') {
     return <Navigate to="/dashboard" replace />;
-  } else if (user.role === 'operator') {
+  } else if (profile.role === 'operator') {
     return <Navigate to="/consumo" replace />;
   }
 

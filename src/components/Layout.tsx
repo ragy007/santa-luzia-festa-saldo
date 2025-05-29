@@ -53,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
-  const { signOut, user } = useAuth();
+  const { signOut, profile } = useAuth();
 
   const allMenuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
@@ -68,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
 
   // Filtrar menu baseado no role do usuário
   const menuItems = allMenuItems.filter(item => {
-    if (user?.role === 'admin') return true;
+    if (profile?.role === 'admin') return true;
     return !item.adminOnly;
   });
 
@@ -84,6 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const handleSignOut = async () => {
     if (confirm('Tem certeza que deseja sair do sistema?')) {
       await signOut();
+      navigate('/auth');
     }
   };
 

@@ -1,12 +1,19 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useSettings } from './SettingsContext';
-import { UserAccount } from '@/types/settings';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Profile {
+  id: string;
+  full_name: string;
+  role: 'admin' | 'operator';
+  booth_id?: string;
+}
 
 interface AuthContextType {
-  user: UserAccount | null;
-  profile: UserAccount | null;
-  session: any;
+  user: User | null;
+  profile: Profile | null;
+  session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
   isAdmin: boolean;
@@ -24,91 +31,83 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserAccount | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { users } = useSettings();
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error);
+      setProfile(null);
+    }
+  };
 
   useEffect(() => {
-    console.log('AuthProvider - Users changed:', users);
-    
-    // Verificar se há usuário logado no localStorage
-    const checkAuthStatus = () => {
-      try {
-        const storedUser = localStorage.getItem('auth-user');
-        console.log('AuthProvider - Stored user:', storedUser);
-        
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          console.log('AuthProvider - Parsed user data:', userData);
-          
-          // Verificar se o usuário ainda existe na lista de usuários ativos
-          const currentUser = users.find(u => 
-            u.id === userData.id && 
-            u.email === userData.email && 
-            u.isActive
-          );
-          
-          console.log('AuthProvider - Current user found:', currentUser);
-          
-          if (currentUser) {
-            setUser(currentUser);
-          } else {
-            // Usuário foi removido ou desativado, fazer logout
-            console.log('AuthProvider - User not found or inactive, clearing auth');
-            localStorage.removeItem('auth-user');
-            setUser(null);
-          }
+    // Configurar listener de mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Aguardar um pouco antes de buscar o perfil
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
         } else {
-          console.log('AuthProvider - No stored user found');
-          setUser(null);
+          setProfile(null);
         }
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        localStorage.removeItem('auth-user');
-        setUser(null);
-      } finally {
+        
         setLoading(false);
       }
-    };
+    );
 
-    // Aguardar um pouco para garantir que os usuários foram carregados
-    if (users.length > 0) {
-      checkAuthStatus();
-    } else {
-      // Se ainda não há usuários, aguardar mais um pouco
-      setTimeout(checkAuthStatus, 100);
-    }
+    // Verificar sessão atual
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
+      
+      setLoading(false);
+    });
 
-    // Escutar mudanças no localStorage
-    const handleStorageChange = () => {
-      console.log('AuthProvider - Storage changed, rechecking auth');
-      checkAuthStatus();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [users]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signOut = async () => {
     try {
-      console.log('AuthProvider - Signing out');
-      localStorage.removeItem('auth-user');
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
-      window.location.href = '/auth';
+      setProfile(null);
+      setSession(null);
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
   };
 
-  const isAdmin = user?.role === 'admin';
-  const isOperator = user?.role === 'operator';
-
-  console.log('AuthProvider - Current state:', { user, loading, isAdmin, isOperator });
+  const isAdmin = profile?.role === 'admin';
+  const isOperator = profile?.role === 'operator';
 
   const value = {
     user,
-    profile: user, // Para compatibilidade com o código existente
-    session: user ? { user } : null, // Para compatibilidade
+    profile,
+    session,
     loading,
     signOut,
     isAdmin,

@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSettings } from '@/contexts/SettingsContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { Church, Info } from 'lucide-react';
+import { useSettings } from '@/contexts/SettingsContext';
 import { toast } from '@/hooks/use-toast';
 
 const Auth: React.FC = () => {
@@ -20,84 +21,46 @@ const Auth: React.FC = () => {
     password: '123456'
   });
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { settings, users } = useSettings();
-
-  console.log('Auth component - Current user:', user);
-  console.log('Auth component - Available users:', users);
+  const { user, profile } = useAuth();
+  const { settings } = useSettings();
 
   // Redirecionar se já estiver logado
   useEffect(() => {
-    console.log('Auth useEffect - user:', user);
-    if (user) {
-      console.log('User found, redirecting to dashboard');
-      navigate('/');
+    if (user && profile) {
+      if (profile.role === 'admin') {
+        navigate('/');
+      } else {
+        navigate('/consumo');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    console.log('Attempting login with:', credentials);
-    console.log('Available users for comparison:', users);
-
     try {
-      // Simular autenticação local
-      const foundUser = users.find(u => {
-        console.log('Checking user:', u.email, 'vs', credentials.email);
-        console.log('Password check:', u.password, 'vs', credentials.password);
-        console.log('Is active:', u.isActive);
-        
-        return u.email === credentials.email && 
-               u.password === credentials.password &&
-               u.isActive;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
       });
 
-      console.log('Found user:', foundUser);
+      if (error) throw error;
 
-      if (foundUser) {
-        // Simular login bem-sucedido
-        const authUser = {
-          id: foundUser.id,
-          email: foundUser.email,
-          name: foundUser.name,
-          role: foundUser.role
-        };
-        
-        console.log('Setting auth user in localStorage:', authUser);
-        localStorage.setItem('auth-user', JSON.stringify(authUser));
-        
+      if (data.user) {
         toast({
           title: "Login realizado!",
-          description: `Bem-vindo, ${foundUser.name}!`,
+          description: "Bem-vindo ao sistema!",
         });
-        
-        console.log('About to navigate to dashboard');
-        
-        // Forçar refresh do contexto de auth antes do redirecionamento
-        window.dispatchEvent(new Event('storage'));
-        
-        // Usar setTimeout para garantir que o contexto seja atualizado
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-      } else {
-        console.log('Login failed - user not found or invalid credentials');
-        setError('Email ou senha incorretos');
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('Erro inesperado. Tente novamente.');
+    } catch (error: any) {
+      console.error('Erro no login:', error);
+      setError(error.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setLoading(false);
     }
   };
-
-  // Encontrar usuários para mostrar as credenciais
-  const adminUser = users.find(u => u.role === 'admin');
-  const operatorUser = users.find(u => u.role === 'operator');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -135,20 +98,9 @@ const Auth: React.FC = () => {
             <Alert className="mb-4 border-blue-200 bg-blue-50">
               <Info className="h-4 w-4" />
               <AlertDescription className="text-blue-600">
-                <strong>Credenciais disponíveis:</strong><br />
-                {adminUser && (
-                  <>
-                    <strong>Admin:</strong> {adminUser.email} / {adminUser.password}<br />
-                  </>
-                )}
-                {operatorUser && (
-                  <>
-                    <strong>Operador:</strong> {operatorUser.email} / {operatorUser.password}
-                  </>
-                )}
-                {!operatorUser && !adminUser && (
-                  <>Email: admin@festa.com / Senha: 123456</>
-                )}
+                <strong>Credenciais de teste:</strong><br />
+                <strong>Admin:</strong> admin@festa.com / 123456<br />
+                <strong>Operador:</strong> operador@festa.com / 123456
               </AlertDescription>
             </Alert>
 
