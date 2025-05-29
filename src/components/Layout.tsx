@@ -56,7 +56,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const { signOut, user } = useAuth();
 
   const allMenuItems = [
-    { path: '/', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
+    { path: '/dashboard', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
     { path: '/cadastro', icon: UserPlus, label: 'Cadastro', color: 'text-green-600', adminOnly: true },
     { path: '/recarga', icon: CreditCard, label: 'Recarga', color: 'text-yellow-600', adminOnly: true },
     { path: '/consumo', icon: ShoppingCart, label: 'Consumo', color: 'text-orange-600', adminOnly: false },

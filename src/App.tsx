@@ -19,8 +19,38 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
+import { useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
+
+// Componente para redirecionar baseado no role
+const RoleBasedRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Redirecionar baseado no role
+  if (user.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  } else if (user.role === 'operator') {
+    return <Navigate to="/consumo" replace />;
+  }
+
+  return <Navigate to="/auth" replace />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -34,10 +64,11 @@ const App = () => (
               <Routes>
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={<RoleBasedRedirect />} />
                 <Route
-                  path="/"
+                  path="/dashboard"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute requireAdmin>
                       <Dashboard />
                     </ProtectedRoute>
                   }
