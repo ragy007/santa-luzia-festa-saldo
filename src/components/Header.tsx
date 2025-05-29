@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Header: React.FC = () => {
-  const { profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { settings } = useSettings();
 
   const handleSignOut = async () => {
@@ -40,13 +40,13 @@ const Header: React.FC = () => {
             {settings.phone && ` • ${settings.phone}`}
           </p>
         </div>
-        {profile && (
+        {user && (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            profile.role === 'admin' 
+            user.role === 'admin' 
               ? 'bg-purple-100 text-purple-800' 
               : 'bg-blue-100 text-blue-800'
           }`}>
-            {profile.role === 'admin' ? 'Administrador' : 'Operador'}
+            {user.role === 'admin' ? 'Administrador' : 'Operador'}
           </span>
         )}
       </div>
@@ -55,7 +55,7 @@ const Header: React.FC = () => {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-2">
             <User className="h-4 w-4" />
-            <span>{profile?.full_name || 'Usuário'}</span>
+            <span>{user?.name || 'Usuário'}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

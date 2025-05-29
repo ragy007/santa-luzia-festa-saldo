@@ -1,21 +1,12 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Profile {
-  id: string;
-  full_name: string;
-  role: 'admin' | 'operator';
-  booth_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { useSettings } from './SettingsContext';
+import { UserAccount } from '@/types/settings';
 
 interface AuthContextType {
-  user: User | null;
-  profile: Profile | null;
-  session: Session | null;
+  user: UserAccount | null;
+  profile: UserAccount | null;
+  session: any;
   loading: boolean;
   signOut: () => Promise<void>;
   isAdmin: boolean;
@@ -33,78 +24,63 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<UserAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const { users } = useSettings();
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
+  useEffect(() => {
+    // Verificar se há usuário logado no localStorage
+    const checkAuthStatus = () => {
+      try {
+        const storedUser = localStorage.getItem('auth-user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          // Verificar se o usuário ainda existe na lista de usuários ativos
+          const currentUser = users.find(u => 
+            u.id === userData.id && 
+            u.email === userData.email && 
+            u.isActive
+          );
+          
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            // Usuário foi removido ou desativado, fazer logout
+            localStorage.removeItem('auth-user');
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        localStorage.removeItem('auth-user');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setProfile(data);
+    checkAuthStatus();
+  }, [users]);
+
+  const signOut = async () => {
+    try {
+      localStorage.removeItem('auth-user');
+      setUser(null);
+      window.location.href = '/auth';
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Erro ao fazer logout:', error);
     }
   };
 
-  useEffect(() => {
-    // Configurar listener de mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Buscar perfil do usuário com timeout para evitar deadlock
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    // Verificar sessão existente
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const isAdmin = profile?.role === 'admin';
-  const isOperator = profile?.role === 'operator';
+  const isAdmin = user?.role === 'admin';
+  const isOperator = user?.role === 'operator';
 
   const value = {
     user,
-    profile,
-    session,
+    profile: user, // Para compatibilidade com o código existente
+    session: user ? { user } : null, // Para compatibilidade
     loading,
     signOut,
     isAdmin,
