@@ -1,24 +1,131 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './AuthContext';
 
-interface AppContextType extends AppState {
-  addParticipant: (participant: Omit<Participant, 'id' | 'createdAt' | 'qrCode'>) => void;
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
-  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
-  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => Promise<void>;
-  updateParticipantBalance: (participantId: string, amount: number, type: 'credit' | 'debit') => void;
-  getParticipantByCard: (cardNumber: string) => Participant | undefined;
-  getParticipantTransactions: (participantId: string) => Transaction[];
-  addClosingOption: (closingOption: Omit<ClosingOption, 'timestamp'>) => void;
-  getTotalSales: () => number;
-  getTotalActiveBalance: () => number;
-  generateQRCode: (cardNumber: string) => string;
-  refreshProducts: () => Promise<void>;
-  refreshBooths: () => Promise<void>;
+interface AppContextType {
+  state: AppState;
+  addParticipant: (participant: Omit<Participant, 'id'>) => void;
+  updateParticipant: (id: string, participant: Partial<Participant>) => void;
+  deleteParticipant: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, product: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
+  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
+  updateBooth: (id: string, booth: Partial<Booth>) => void;
+  deleteBooth: (id: string) => void;
+  addClosingOption: (option: ClosingOption) => void;
+  toggleFestival: () => void;
+  clearAllData: () => void;
+}
+
+type Action =
+  | { type: 'ADD_PARTICIPANT'; payload: Participant }
+  | { type: 'UPDATE_PARTICIPANT'; payload: { id: string; participant: Partial<Participant> } }
+  | { type: 'DELETE_PARTICIPANT'; payload: string }
+  | { type: 'ADD_TRANSACTION'; payload: Transaction }
+  | { type: 'ADD_PRODUCT'; payload: Product }
+  | { type: 'UPDATE_PRODUCT'; payload: { id: string; product: Partial<Product> } }
+  | { type: 'DELETE_PRODUCT'; payload: string }
+  | { type: 'ADD_BOOTH'; payload: Booth }
+  | { type: 'UPDATE_BOOTH'; payload: { id: string; booth: Partial<Booth> } }
+  | { type: 'DELETE_BOOTH'; payload: string }
+  | { type: 'ADD_CLOSING_OPTION'; payload: ClosingOption }
+  | { type: 'TOGGLE_FESTIVAL' }
+  | { type: 'CLEAR_ALL_DATA' }
+  | { type: 'LOAD_STATE'; payload: AppState };
+
+const initialState: AppState = {
+  participants: [],
+  transactions: [],
+  products: [],
+  booths: [],
+  closingOptions: [],
+  festivalActive: true,
+};
+
+function appReducer(state: AppState, action: Action): AppState {
+  switch (action.type) {
+    case 'ADD_PARTICIPANT':
+      return {
+        ...state,
+        participants: [...state.participants, action.payload],
+      };
+    case 'UPDATE_PARTICIPANT':
+      return {
+        ...state,
+        participants: state.participants.map(participant =>
+          participant.id === action.payload.id
+            ? { ...participant, ...action.payload.participant }
+            : participant
+        ),
+      };
+    case 'DELETE_PARTICIPANT':
+      return {
+        ...state,
+        participants: state.participants.filter(participant => participant.id !== action.payload),
+      };
+    case 'ADD_TRANSACTION':
+      return {
+        ...state,
+        transactions: [...state.transactions, action.payload],
+      };
+    case 'ADD_PRODUCT':
+      return {
+        ...state,
+        products: [...state.products, action.payload],
+      };
+    case 'UPDATE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.map(product =>
+          product.id === action.payload.id
+            ? { ...product, ...action.payload.product }
+            : product
+        ),
+      };
+    case 'DELETE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.filter(product => product.id !== action.payload),
+      };
+    case 'ADD_BOOTH':
+      return {
+        ...state,
+        booths: [...state.booths, action.payload],
+      };
+      
+    case 'UPDATE_BOOTH':
+      return {
+        ...state,
+        booths: state.booths.map(booth =>
+          booth.id === action.payload.id
+            ? { ...booth, ...action.payload.booth }
+            : booth
+        ),
+      };
+      
+    case 'DELETE_BOOTH':
+      return {
+        ...state,
+        booths: state.booths.filter(booth => booth.id !== action.payload),
+      };
+    case 'ADD_CLOSING_OPTION':
+      return {
+        ...state,
+        closingOptions: [...state.closingOptions, action.payload],
+      };
+    case 'TOGGLE_FESTIVAL':
+      return {
+        ...state,
+        festivalActive: !state.festivalActive,
+      };
+    case 'CLEAR_ALL_DATA':
+      return initialState;
+    case 'LOAD_STATE':
+      return action.payload;
+    default:
+      return state;
+  }
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -32,344 +139,109 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const [state, setState] = useState<AppState>({
-    participants: [],
-    transactions: [],
-    products: [],
-    booths: [],
-    closingOptions: [],
-    festivalActive: true,
-  });
+  const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Buscar barracas do Supabase
-  const fetchBooths = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('booths')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Erro ao buscar barracas:', error);
-        return;
-      }
-
-      const boothsData: Booth[] = data.map(booth => ({
-        id: booth.id,
-        name: booth.name,
-        isActive: booth.is_active,
-        totalSales: 0 // Será calculado baseado nas transações
-      }));
-
-      setState(prev => ({ ...prev, booths: boothsData }));
-    } catch (error) {
-      console.error('Erro ao buscar barracas:', error);
-    }
-  };
-
-  // Buscar produtos do Supabase
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          price,
-          is_active,
-          booths!inner (
-            name
-          )
-        `)
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Erro ao buscar produtos:', error);
-        return;
-      }
-
-      const productsData: Product[] = data.map(product => ({
-        id: product.id,
-        name: product.name,
-        price: Number(product.price),
-        booth: product.booths.name,
-        isActive: product.is_active
-      }));
-
-      setState(prev => ({ ...prev, products: productsData }));
-    } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
-    }
-  };
-
-  // Carregar dados quando o usuário estiver autenticado
   useEffect(() => {
-    if (user) {
-      fetchBooths();
-      fetchProducts();
-    }
-  }, [user]);
-
-  // Carregar dados do localStorage ao inicializar (para participantes e transações)
-  useEffect(() => {
-    const savedData = localStorage.getItem('paroquia-festa-data');
-    if (savedData) {
+    const storedState = localStorage.getItem('appState');
+    if (storedState) {
       try {
-        const parsedData = JSON.parse(savedData);
-        setState(prevState => ({ 
-          ...prevState, 
-          participants: parsedData.participants || [],
-          transactions: parsedData.transactions || [],
-          closingOptions: parsedData.closingOptions || []
-        }));
+        const parsedState = JSON.parse(storedState);
+        dispatch({ type: 'LOAD_STATE', payload: parsedState });
       } catch (error) {
-        console.error('Erro ao carregar dados salvos:', error);
+        console.error('Error loading state from localStorage:', error);
       }
     }
   }, []);
 
-  // Salvar dados no localStorage sempre que o estado mudar (apenas dados locais)
   useEffect(() => {
-    const dataToSave = {
-      participants: state.participants,
-      transactions: state.transactions,
-      closingOptions: state.closingOptions
-    };
-    localStorage.setItem('paroquia-festa-data', JSON.stringify(dataToSave));
-  }, [state.participants, state.transactions, state.closingOptions]);
+    localStorage.setItem('appState', JSON.stringify(state));
+  }, [state]);
 
-  const generateId = () => Math.random().toString(36).substr(2, 9);
-
-  const generateQRCode = (cardNumber: string) => {
-    return `PAROQUIA_SANTA_LUZIA_${cardNumber}`;
-  };
-
-  const addParticipant = (participant: Omit<Participant, 'id' | 'createdAt' | 'qrCode'>) => {
+  const addParticipant = (participant: Omit<Participant, 'id'>) => {
     const newParticipant: Participant = {
       ...participant,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-      qrCode: generateQRCode(participant.cardNumber),
+      id: Math.random().toString(36).substr(2, 9),
     };
-
-    setState(prev => ({
-      ...prev,
-      participants: [...prev.participants, newParticipant],
-    }));
-
-    // Registrar transação inicial se houver saldo
-    if (participant.initialBalance > 0) {
-      addTransaction({
-        participantId: newParticipant.id,
-        type: 'credit',
-        amount: participant.initialBalance,
-        description: 'Carga inicial',
-        operatorName: 'Sistema',
-      });
-    }
-
-    toast({
-      title: "Participante cadastrado!",
-      description: `${participant.name} foi cadastrado com sucesso.`,
-    });
+    dispatch({ type: 'ADD_PARTICIPANT', payload: newParticipant });
   };
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+  const updateParticipant = (id: string, participant: Partial<Participant>) => {
+    dispatch({ type: 'UPDATE_PARTICIPANT', payload: { id, participant } });
+  };
+
+  const deleteParticipant = (id: string) => {
+    dispatch({ type: 'DELETE_PARTICIPANT', payload: id });
+  };
+
+  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
       ...transaction,
-      id: generateId(),
-      timestamp: new Date().toISOString(),
+      id: Math.random().toString(36).substr(2, 9),
     };
-
-    setState(prev => ({
-      ...prev,
-      transactions: [...prev.transactions, newTransaction],
-    }));
-
-    // Atualizar saldo do participante
-    updateParticipantBalance(transaction.participantId, transaction.amount, transaction.type);
-
-    // Atualizar total de vendas da barraca se for débito
-    if (transaction.type === 'debit' && transaction.booth) {
-      setState(prev => ({
-        ...prev,
-        booths: prev.booths.map(booth =>
-          booth.name === transaction.booth
-            ? { ...booth, totalSales: booth.totalSales + transaction.amount }
-            : booth
-        ),
-      }));
-    }
+    dispatch({ type: 'ADD_TRANSACTION', payload: newTransaction });
   };
 
-  const updateParticipantBalance = (participantId: string, amount: number, type: 'credit' | 'debit') => {
-    setState(prev => ({
-      ...prev,
-      participants: prev.participants.map(p =>
-        p.id === participantId
-          ? {
-              ...p,
-              balance: type === 'credit' ? p.balance + amount : p.balance - amount,
-            }
-          : p
-      ),
-    }));
-  };
-
-  const addProduct = async (product: Omit<Product, 'id'>) => {
-    try {
-      // Buscar ID da barraca
-      const { data: boothData, error: boothError } = await supabase
-        .from('booths')
-        .select('id')
-        .eq('name', product.booth)
-        .single();
-
-      if (boothError || !boothData) {
-        toast({
-          title: "Erro!",
-          description: "Barraca não encontrada.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('products')
-        .insert({
-          name: product.name,
-          price: product.price,
-          booth_id: boothData.id,
-          is_active: product.isActive
-        });
-
-      if (error) {
-        console.error('Erro ao adicionar produto:', error);
-        toast({
-          title: "Erro!",
-          description: "Erro ao adicionar produto.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await fetchProducts(); // Recarregar produtos
-
-      toast({
-        title: "Produto adicionado!",
-        description: `${product.name} foi adicionado ao cardápio.`,
-      });
-    } catch (error) {
-      console.error('Erro ao adicionar produto:', error);
-      toast({
-        title: "Erro!",
-        description: "Erro ao adicionar produto.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addBooth = async (booth: Omit<Booth, 'id' | 'totalSales'>) => {
-    try {
-      const { error } = await supabase
-        .from('booths')
-        .insert({
-          name: booth.name,
-          is_active: booth.isActive
-        });
-
-      if (error) {
-        console.error('Erro ao adicionar barraca:', error);
-        toast({
-          title: "Erro!",
-          description: "Erro ao adicionar barraca.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await fetchBooths(); // Recarregar barracas
-
-      toast({
-        title: "Barraca adicionada!",
-        description: `${booth.name} foi adicionada à festa.`,
-      });
-    } catch (error) {
-      console.error('Erro ao adicionar barraca:', error);
-      toast({
-        title: "Erro!",
-        description: "Erro ao adicionar barraca.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getParticipantByCard = (cardNumber: string) => {
-    return state.participants.find(p => p.cardNumber === cardNumber);
-  };
-
-  const getParticipantTransactions = (participantId: string) => {
-    return state.transactions.filter(t => t.participantId === participantId);
-  };
-
-  const addClosingOption = (closingOption: Omit<ClosingOption, 'timestamp'>) => {
-    const newClosingOption: ClosingOption = {
-      ...closingOption,
-      timestamp: new Date().toISOString(),
+  const addProduct = (product: Omit<Product, 'id'>) => {
+    const newProduct: Product = {
+      ...product,
+      id: Math.random().toString(36).substr(2, 9),
     };
-
-    setState(prev => ({
-      ...prev,
-      closingOptions: [...prev.closingOptions, newClosingOption],
-    }));
-
-    toast({
-      title: "Encerramento registrado!",
-      description: "Opção de encerramento foi registrada com sucesso.",
-    });
+    dispatch({ type: 'ADD_PRODUCT', payload: newProduct });
   };
 
-  const getTotalSales = () => {
-    return state.transactions
-      .filter(t => t.type === 'debit')
-      .reduce((total, t) => total + t.amount, 0);
+  const updateProduct = (id: string, product: Partial<Product>) => {
+    dispatch({ type: 'UPDATE_PRODUCT', payload: { id, product } });
   };
 
-  const getTotalActiveBalance = () => {
-    return state.participants.reduce((total, p) => total + p.balance, 0);
+  const deleteProduct = (id: string) => {
+    dispatch({ type: 'DELETE_PRODUCT', payload: id });
   };
 
-  const refreshProducts = async () => {
-    await fetchProducts();
+  const addBooth = (booth: Omit<Booth, 'id' | 'totalSales'>) => {
+    const newBooth: Booth = {
+      ...booth,
+      id: Math.random().toString(36).substr(2, 9),
+      totalSales: 0,
+    };
+    dispatch({ type: 'ADD_BOOTH', payload: newBooth });
   };
 
-  const refreshBooths = async () => {
-    await fetchBooths();
+  const updateBooth = (id: string, booth: Partial<Booth>) => {
+    dispatch({ type: 'UPDATE_BOOTH', payload: { id, booth } });
   };
 
-  return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        addParticipant,
-        addTransaction,
-        addProduct,
-        addBooth,
-        updateParticipantBalance,
-        getParticipantByCard,
-        getParticipantTransactions,
-        addClosingOption,
-        getTotalSales,
-        getTotalActiveBalance,
-        generateQRCode,
-        refreshProducts,
-        refreshBooths,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
-  );
+  const deleteBooth = (id: string) => {
+    dispatch({ type: 'DELETE_BOOTH', payload: id });
+  };
+
+  const addClosingOption = (option: ClosingOption) => {
+    dispatch({ type: 'ADD_CLOSING_OPTION', payload: option });
+  };
+
+  const toggleFestival = () => {
+    dispatch({ type: 'TOGGLE_FESTIVAL' });
+  };
+
+  const clearAllData = () => {
+    dispatch({ type: 'CLEAR_ALL_DATA' });
+  };
+
+  const value = {
+    state,
+    addParticipant,
+    updateParticipant,
+    deleteParticipant,
+    addTransaction,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    addBooth,
+    updateBooth,
+    deleteBooth,
+    addClosingOption,
+    toggleFestival,
+    clearAllData,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
