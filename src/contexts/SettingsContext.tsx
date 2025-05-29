@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FestivalSettings, UserAccount } from '@/types/settings';
 
@@ -15,6 +16,8 @@ const defaultSettings: FestivalSettings = {
   name: 'Festa Comunitária',
   date: new Date().toISOString().split('T')[0],
   location: 'Centro Social Paróquia Santa Luzia',
+  title: '🎉 Festa Comunitária 2024',
+  subtitle: 'Centro Social da Paróquia Santa Luzia',
   colors: {
     primary: '#4F46E5',
     secondary: '#F8FAFC', 

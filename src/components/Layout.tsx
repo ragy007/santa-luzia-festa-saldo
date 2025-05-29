@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Home, 
   UserPlus, 
@@ -12,7 +13,8 @@ import {
   History, 
   BarChart3, 
   Settings,
-  Church
+  Church,
+  LogOut
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -24,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
+  const { signOut } = useAuth();
 
   const menuItems = [
     { path: '/', icon: Home, label: 'Dashboard', color: 'text-blue-600' },
@@ -45,6 +48,12 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     });
   };
 
+  const handleSignOut = async () => {
+    if (confirm('Tem certeza que deseja sair do sistema?')) {
+      await signOut();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -64,8 +73,12 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
                 )}
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">{settings.location}</h1>
-                <p className="text-sm text-gray-500">Sistema de Controle - {settings.name}</p>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {settings.title || '🎉 Festa Comunitária 2024'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {settings.subtitle || 'Centro Social da Paróquia Santa Luzia'}
+                </p>
               </div>
             </div>
             <div className="text-right">
@@ -104,6 +117,18 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
                     </Button>
                   );
                 })}
+                
+                {/* Botão de Sair */}
+                <div className="pt-4 border-t border-gray-200">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-12 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    <span className="font-medium">Sair</span>
+                  </Button>
+                </div>
               </nav>
             </Card>
           </div>

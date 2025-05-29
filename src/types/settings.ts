@@ -5,6 +5,8 @@ export interface FestivalSettings {
   location: string;
   logoUrl?: string;
   phone?: string;
+  title?: string;
+  subtitle?: string;
   colors: {
     primary: string;
     secondary: string;
