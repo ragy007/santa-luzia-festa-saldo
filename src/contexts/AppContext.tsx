@@ -1,8 +1,14 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 
 interface AppContextType {
   state: AppState;
+  participants: Participant[];
+  transactions: Transaction[];
+  products: Product[];
+  booths: Booth[];
+  closingOptions: ClosingOption[];
   addParticipant: (participant: Omit<Participant, 'id'>) => void;
   updateParticipant: (id: string, participant: Partial<Participant>) => void;
   deleteParticipant: (id: string) => void;
@@ -16,6 +22,9 @@ interface AppContextType {
   addClosingOption: (option: ClosingOption) => void;
   toggleFestival: () => void;
   clearAllData: () => void;
+  getParticipantByCard: (cardNumber: string) => Participant | undefined;
+  getTotalSales: () => number;
+  getTotalActiveBalance: () => number;
 }
 
 type Action =
@@ -65,9 +74,29 @@ function appReducer(state: AppState, action: Action): AppState {
         participants: state.participants.filter(participant => participant.id !== action.payload),
       };
     case 'ADD_TRANSACTION':
+      const newTransaction = action.payload;
+      const updatedParticipants = state.participants.map(participant => {
+        if (participant.id === newTransaction.participantId) {
+          const newBalance = newTransaction.type === 'credit' 
+            ? participant.balance + newTransaction.amount
+            : participant.balance - newTransaction.amount;
+          return { ...participant, balance: newBalance };
+        }
+        return participant;
+      });
+
+      const updatedBooths = state.booths.map(booth => {
+        if (newTransaction.type === 'debit' && newTransaction.booth === booth.name) {
+          return { ...booth, totalSales: booth.totalSales + newTransaction.amount };
+        }
+        return booth;
+      });
+
       return {
         ...state,
-        transactions: [...state.transactions, action.payload],
+        transactions: [...state.transactions, newTransaction],
+        participants: updatedParticipants,
+        booths: updatedBooths,
       };
     case 'ADD_PRODUCT':
       return {
@@ -161,6 +190,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newParticipant: Participant = {
       ...participant,
       id: Math.random().toString(36).substr(2, 9),
+      qrCode: participant.cardNumber,
+      createdAt: new Date().toISOString(),
     };
     dispatch({ type: 'ADD_PARTICIPANT', payload: newParticipant });
   };
@@ -177,6 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newTransaction: Transaction = {
       ...transaction,
       id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toISOString(),
     };
     dispatch({ type: 'ADD_TRANSACTION', payload: newTransaction });
   };
@@ -214,8 +246,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dispatch({ type: 'DELETE_BOOTH', payload: id });
   };
 
-  const addClosingOption = (option: ClosingOption) => {
-    dispatch({ type: 'ADD_CLOSING_OPTION', payload: option });
+  const addClosingOption = (option: Omit<ClosingOption, 'timestamp'>) => {
+    const newOption: ClosingOption = {
+      ...option,
+      timestamp: new Date().toISOString(),
+    };
+    dispatch({ type: 'ADD_CLOSING_OPTION', payload: newOption });
   };
 
   const toggleFestival = () => {
@@ -226,8 +262,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dispatch({ type: 'CLEAR_ALL_DATA' });
   };
 
+  const getParticipantByCard = (cardNumber: string): Participant | undefined => {
+    return state.participants.find(p => p.cardNumber === cardNumber);
+  };
+
+  const getTotalSales = (): number => {
+    return state.transactions
+      .filter(t => t.type === 'debit')
+      .reduce((total, t) => total + t.amount, 0);
+  };
+
+  const getTotalActiveBalance = (): number => {
+    return state.participants
+      .filter(p => p.isActive)
+      .reduce((total, p) => total + p.balance, 0);
+  };
+
   const value = {
     state,
+    participants: state.participants,
+    transactions: state.transactions,
+    products: state.products,
+    booths: state.booths,
+    closingOptions: state.closingOptions,
     addParticipant,
     updateParticipant,
     deleteParticipant,
@@ -241,6 +298,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addClosingOption,
     toggleFestival,
     clearAllData,
+    getParticipantByCard,
+    getTotalSales,
+    getTotalActiveBalance,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
