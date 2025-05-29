@@ -61,17 +61,17 @@ export const useTransactions = () => {
 
       if (transactionError) throw transactionError;
 
-      // Atualizar saldo do participante
+      // Atualizar saldo do participante usando RPC
       if (transaction.type === 'credit') {
         // Recarga - adicionar saldo
-        const { error: updateError } = await supabase.rpc('update_participant_balance', {
+        const { error: updateError } = await supabase.rpc('update_participant_balance' as any, {
           participant_id: transaction.participantId,
           amount_change: transaction.amount
         });
         if (updateError) throw updateError;
       } else {
         // Compra - subtrair saldo
-        const { error: updateError } = await supabase.rpc('update_participant_balance', {
+        const { error: updateError } = await supabase.rpc('update_participant_balance' as any, {
           participant_id: transaction.participantId,
           amount_change: -transaction.amount
         });
@@ -79,7 +79,7 @@ export const useTransactions = () => {
 
         // Atualizar vendas da barraca se for uma compra
         if (transaction.booth) {
-          const { error: boothError } = await supabase.rpc('update_booth_sales', {
+          const { error: boothError } = await supabase.rpc('update_booth_sales' as any, {
             booth_name: transaction.booth,
             amount_change: transaction.amount
           });

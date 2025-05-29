@@ -371,6 +371,14 @@ export type Database = {
         Args: { user_id?: string }
         Returns: boolean
       }
+      update_booth_sales: {
+        Args: { booth_name: string; amount_change: number }
+        Returns: undefined
+      }
+      update_participant_balance: {
+        Args: { participant_id: string; amount_change: number }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "admin" | "operator"
