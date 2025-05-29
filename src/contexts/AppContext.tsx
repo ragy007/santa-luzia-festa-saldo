@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 import { toast } from '@/hooks/use-toast';
@@ -41,8 +40,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closingOptions: [],
     festivalActive: true,
   });
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Buscar barracas do Supabase
+  // Carregar dados do localStorage primeiro (dados locais)
+  useEffect(() => {
+    const savedData = localStorage.getItem('paroquia-festa-data');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setState(prevState => ({ 
+          ...prevState, 
+          participants: parsedData.participants || [],
+          transactions: parsedData.transactions || [],
+          closingOptions: parsedData.closingOptions || []
+        }));
+      } catch (error) {
+        console.error('Erro ao carregar dados salvos:', error);
+      }
+    }
+    setDataLoaded(true);
+  }, []);
+
+  // Carregar dados do Supabase apenas quando necessário e usuário autenticado
+  useEffect(() => {
+    if (user && dataLoaded) {
+      const loadSupabaseData = async () => {
+        await Promise.all([fetchBooths(), fetchProducts()]);
+      };
+      loadSupabaseData();
+    }
+  }, [user, dataLoaded]);
+
+  // Salvar dados no localStorage (debounced)
+  useEffect(() => {
+    if (!dataLoaded) return;
+    
+    const timeoutId = setTimeout(() => {
+      const dataToSave = {
+        participants: state.participants,
+        transactions: state.transactions,
+        closingOptions: state.closingOptions
+      };
+      localStorage.setItem('paroquia-festa-data', JSON.stringify(dataToSave));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.participants, state.transactions, state.closingOptions, dataLoaded]);
+
   const fetchBooths = async () => {
     try {
       const { data, error } = await supabase
@@ -60,7 +104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: booth.id,
         name: booth.name,
         isActive: booth.is_active,
-        totalSales: 0 // Será calculado baseado nas transações
+        totalSales: 0
       }));
 
       setState(prev => ({ ...prev, booths: boothsData }));
@@ -69,7 +113,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Buscar produtos do Supabase
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -105,42 +148,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Carregar dados quando o usuário estiver autenticado
-  useEffect(() => {
-    if (user) {
-      fetchBooths();
-      fetchProducts();
-    }
-  }, [user]);
-
-  // Carregar dados do localStorage ao inicializar (para participantes e transações)
-  useEffect(() => {
-    const savedData = localStorage.getItem('paroquia-festa-data');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setState(prevState => ({ 
-          ...prevState, 
-          participants: parsedData.participants || [],
-          transactions: parsedData.transactions || [],
-          closingOptions: parsedData.closingOptions || []
-        }));
-      } catch (error) {
-        console.error('Erro ao carregar dados salvos:', error);
-      }
-    }
-  }, []);
-
-  // Salvar dados no localStorage sempre que o estado mudar (apenas dados locais)
-  useEffect(() => {
-    const dataToSave = {
-      participants: state.participants,
-      transactions: state.transactions,
-      closingOptions: state.closingOptions
-    };
-    localStorage.setItem('paroquia-festa-data', JSON.stringify(dataToSave));
-  }, [state.participants, state.transactions, state.closingOptions]);
-
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
   const generateQRCode = (cardNumber: string) => {
@@ -160,7 +167,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       participants: [...prev.participants, newParticipant],
     }));
 
-    // Registrar transação inicial se houver saldo
     if (participant.initialBalance > 0) {
       addTransaction({
         participantId: newParticipant.id,
@@ -189,10 +195,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       transactions: [...prev.transactions, newTransaction],
     }));
 
-    // Atualizar saldo do participante
     updateParticipantBalance(transaction.participantId, transaction.amount, transaction.type);
 
-    // Atualizar total de vendas da barraca se for débito
     if (transaction.type === 'debit' && transaction.booth) {
       setState(prev => ({
         ...prev,
@@ -221,7 +225,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addProduct = async (product: Omit<Product, 'id'>) => {
     try {
-      // Buscar ID da barraca
       const { data: boothData, error: boothError } = await supabase
         .from('booths')
         .select('id')
@@ -256,7 +259,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
 
-      await fetchProducts(); // Recarregar produtos
+      await fetchProducts();
 
       toast({
         title: "Produto adicionado!",
@@ -291,7 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
 
-      await fetchBooths(); // Recarregar barracas
+      await fetchBooths();
 
       toast({
         title: "Barraca adicionada!",
