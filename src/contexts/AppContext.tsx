@@ -9,17 +9,17 @@ interface AppContextType {
   products: Product[];
   booths: Booth[];
   closingOptions: ClosingOption[];
-  addParticipant: (participant: Omit<Participant, 'id'>) => void;
+  addParticipant: (participant: Omit<Participant, 'id' | 'qrCode' | 'createdAt'>) => void;
   updateParticipant: (id: string, participant: Partial<Participant>) => void;
   deleteParticipant: (id: string) => void;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
   updateBooth: (id: string, booth: Partial<Booth>) => void;
   deleteBooth: (id: string) => void;
-  addClosingOption: (option: ClosingOption) => void;
+  addClosingOption: (option: Omit<ClosingOption, 'timestamp'>) => void;
   toggleFestival: () => void;
   clearAllData: () => void;
   getParticipantByCard: (cardNumber: string) => Participant | undefined;
@@ -186,7 +186,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('appState', JSON.stringify(state));
   }, [state]);
 
-  const addParticipant = (participant: Omit<Participant, 'id'>) => {
+  const addParticipant = (participant: Omit<Participant, 'id' | 'qrCode' | 'createdAt'>) => {
     const newParticipant: Participant = {
       ...participant,
       id: Math.random().toString(36).substr(2, 9),
@@ -204,7 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dispatch({ type: 'DELETE_PARTICIPANT', payload: id });
   };
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
     const newTransaction: Transaction = {
       ...transaction,
       id: Math.random().toString(36).substr(2, 9),
