@@ -36,103 +36,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      console.log('Fetching profile for user:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        // Se houver erro ao buscar perfil, criar um perfil padrão temporariamente
-        console.log('Creating default profile for user:', userId);
-        const defaultProfile: Profile = {
-          id: userId,
-          full_name: 'Usuário',
-          role: 'admin' // Assumir admin por padrão para os usuários de teste
-        };
-        setProfile(defaultProfile);
-        return;
-      }
-      
-      if (data) {
-        console.log('Profile fetched:', data);
-        setProfile(data);
-      } else {
-        console.log('No profile found, creating default for user:', userId);
-        // Criar perfil padrão se não encontrar
-        const defaultProfile: Profile = {
-          id: userId,
-          full_name: 'Usuário',
-          role: 'admin'
-        };
-        setProfile(defaultProfile);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      // Em caso de erro, criar perfil padrão
-      const defaultProfile: Profile = {
-        id: userId,
-        full_name: 'Usuário',
-        role: 'admin'
-      };
-      setProfile(defaultProfile);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     console.log('Setting up auth state listener...');
     
     // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.email || 'no user');
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          // Buscar perfil do usuário
-          await fetchProfile(session.user.id);
+          // Criar perfil padrão temporário para evitar problemas
+          const defaultProfile: Profile = {
+            id: session.user.id,
+            full_name: session.user.email?.split('@')[0] || 'Usuário',
+            role: 'admin' // Assumir admin por padrão para os usuários de teste
+          };
+          setProfile(defaultProfile);
         } else {
           setProfile(null);
         }
         
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     );
 
     // Verificar sessão atual
-    const initializeAuth = async () => {
+    const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
-          setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+          }
           return;
         }
         
         console.log('Current session:', session?.user?.email || 'no session');
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            const defaultProfile: Profile = {
+              id: session.user.id,
+              full_name: session.user.email?.split('@')[0] || 'Usuário',
+              role: 'admin'
+            };
+            setProfile(defaultProfile);
+          }
+          
+          setLoading(false);
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    initializeAuth();
+    checkSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

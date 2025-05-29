@@ -22,18 +22,15 @@ const Auth: React.FC = () => {
 
   // Redirecionar se já estiver logado
   useEffect(() => {
-    // Aguardar o carregamento da autenticação terminar
     if (!authLoading && user && profile) {
       console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
       
-      // Usar setTimeout para garantir que o redirecionamento aconteça após o render
-      setTimeout(() => {
-        if (profile.role === 'admin') {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/consumo', { replace: true });
-        }
-      }, 100);
+      // Redirecionamento baseado no role
+      if (profile.role === 'admin') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/consumo', { replace: true });
+      }
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -69,7 +66,7 @@ const Auth: React.FC = () => {
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
         });
-        // O redirecionamento será feito pelo useEffect quando o profile for carregado
+        // O redirecionamento será feito pelo useEffect
       }
     } catch (error: any) {
       console.error('Erro no login:', error);
