@@ -45,12 +45,12 @@ export interface Settings {
   };
 }
 
-// Update Booth interface to match the one in index.ts
+// Add the Booth interface that SettingsContext expects
 export interface Booth {
   id: string;
   name: string;
+  description: string;
   isActive: boolean;
-  totalSales: number;
 }
 
 export interface UserAccount {

@@ -53,23 +53,23 @@ const Auth: React.FC = () => {
 
       if (userError || !userAccount) {
         console.error('User account error:', userError);
-        setError('Email ou senha incorretos. Verifique as credenciais e tente novamente.');
+        setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
         return;
       }
 
-      console.log('User account found:', userAccount.email, userAccount.role);
-
-      // Tentar fazer login primeiro
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Se o usuário existe na tabela, fazer login via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
       });
 
-      console.log('Sign in attempt:', { signInData, signInError });
+      console.log('Sign in response:', { data, error });
 
-      if (signInError) {
-        // Se o erro for de credenciais inválidas, tentar criar o usuário
-        if (signInError.message === 'Invalid login credentials') {
+      if (error) {
+        console.error('Auth error:', error);
+        
+        // Se o usuário não existe no Supabase Auth, tentar criar
+        if (error.message === 'Invalid login credentials') {
           console.log('User not found in Auth, attempting to create...');
           
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -79,61 +79,32 @@ const Auth: React.FC = () => {
               data: {
                 full_name: userAccount.name,
                 role: userAccount.role
-              },
-              emailRedirectTo: undefined // Evitar confirmação por email
+              }
             }
           });
 
-          console.log('Sign up attempt:', { signUpData, signUpError });
-
           if (signUpError) {
             console.error('Sign up error:', signUpError);
-            setError('Erro ao criar conta de usuário. Tente novamente.');
+            setError('Erro ao criar conta. Tente novamente.');
             return;
           }
 
           if (signUpData.user) {
-            // Se o usuário foi criado mas precisa de confirmação, tentar login novamente
-            if (!signUpData.session) {
-              console.log('User created but needs confirmation, trying login again...');
-              
-              // Aguardar um pouco e tentar login novamente
-              setTimeout(async () => {
-                const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-                  email: credentials.email,
-                  password: credentials.password,
-                });
-
-                if (retryError) {
-                  console.error('Retry login error:', retryError);
-                  setError('Usuário criado, mas erro no login. Tente novamente em alguns segundos.');
-                } else if (retryData.user) {
-                  console.log('Login successful after retry:', retryData.user.email);
-                  toast({
-                    title: "Login realizado!",
-                    description: "Bem-vindo ao sistema!",
-                  });
-                }
-                setLoading(false);
-              }, 1000);
-              return;
-            } else {
-              console.log('User created and signed in:', signUpData.user.email);
-              toast({
-                title: "Login realizado!",
-                description: "Bem-vindo ao sistema!",
-              });
-            }
+            console.log('User created and signed in:', signUpData.user.email);
+            toast({
+              title: "Login realizado!",
+              description: "Bem-vindo ao sistema!",
+            });
+            // O redirecionamento será feito pelo useEffect
           }
         } else {
-          console.error('Other auth error:', signInError);
-          setError('Erro de autenticação: ' + signInError.message);
+          setError(error.message || 'Erro ao fazer login. Tente novamente.');
         }
         return;
       }
 
-      if (signInData.user) {
-        console.log('User signed in successfully:', signInData.user.email);
+      if (data.user) {
+        console.log('User signed in successfully:', data.user.email);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",

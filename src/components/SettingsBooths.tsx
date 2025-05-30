@@ -16,7 +16,7 @@ interface ProductForm {
 }
 
 const SettingsBooths: React.FC = () => {
-  const { booths, products, addBooth, updateBooth, deleteBooth, addProduct } = useApp();
+  const { state, addBooth, updateBooth, deleteBooth, addProduct } = useApp();
   const [newBoothName, setNewBoothName] = useState('');
   const [boothProducts, setBoothProducts] = useState<ProductForm[]>([]);
 
@@ -35,7 +35,7 @@ const SettingsBooths: React.FC = () => {
     setBoothProducts(boothProducts.filter((_, i) => i !== index));
   };
 
-  const handleAddBooth = async () => {
+  const handleAddBooth = () => {
     if (!newBoothName.trim()) {
       toast({
         title: "Erro",
@@ -45,7 +45,7 @@ const SettingsBooths: React.FC = () => {
       return;
     }
 
-    if (booths.some(booth => booth.name.toLowerCase() === newBoothName.trim().toLowerCase())) {
+    if (state.booths.some(booth => booth.name.toLowerCase() === newBoothName.trim().toLowerCase())) {
       toast({
         title: "Erro",
         description: "Já existe uma barraca com este nome",
@@ -75,73 +75,49 @@ const SettingsBooths: React.FC = () => {
       }
     }
 
-    try {
-      // Criar barraca
-      await addBooth({
-        name: newBoothName.trim(),
-        isActive: true,
-      });
+    // Criar barraca
+    const newBooth = addBooth({
+      name: newBoothName.trim(),
+      isActive: true,
+    });
 
-      // Adicionar produtos à barraca
-      for (const product of boothProducts) {
-        if (product.name.trim()) {
-          await addProduct({
-            name: product.name.trim(),
-            price: product.isFree ? 0 : product.price,
-            booth: newBoothName.trim(),
-            isActive: true,
-            isFree: product.isFree,
-          });
-        }
+    // Adicionar produtos à barraca
+    boothProducts.forEach(product => {
+      if (product.name.trim()) {
+        addProduct({
+          name: product.name.trim(),
+          price: product.isFree ? 0 : product.price,
+          booth: newBoothName.trim(),
+          isActive: true,
+          isFree: product.isFree,
+        });
       }
+    });
 
-      setNewBoothName('');
-      setBoothProducts([]);
-      toast({
-        title: "Sucesso",
-        description: `Barraca "${newBoothName.trim()}" adicionada com ${boothProducts.length} produtos!`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao criar barraca",
-        variant: "destructive",
-      });
-    }
+    setNewBoothName('');
+    setBoothProducts([]);
+    toast({
+      title: "Sucesso",
+      description: `Barraca "${newBoothName.trim()}" adicionada com ${boothProducts.length} produtos!`,
+    });
   };
 
-  const handleDeleteBooth = async (id: string, name: string) => {
+  const handleDeleteBooth = (id: string, name: string) => {
     if (confirm(`Tem certeza que deseja excluir a barraca "${name}"?`)) {
-      try {
-        await deleteBooth(id);
-        toast({
-          title: "Sucesso",
-          description: "Barraca excluída com sucesso!",
-        });
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Erro ao excluir barraca",
-          variant: "destructive",
-        });
-      }
+      deleteBooth(id);
+      toast({
+        title: "Sucesso",
+        description: "Barraca excluída com sucesso!",
+      });
     }
   };
 
-  const toggleBoothStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      await updateBooth(id, { isActive: !currentStatus });
-      toast({
-        title: "Sucesso",
-        description: `Barraca ${!currentStatus ? 'ativada' : 'desativada'} com sucesso!`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar barraca",
-        variant: "destructive",
-      });
-    }
+  const toggleBoothStatus = (id: string, currentStatus: boolean) => {
+    updateBooth(id, { isActive: !currentStatus });
+    toast({
+      title: "Sucesso",
+      description: `Barraca ${!currentStatus ? 'ativada' : 'desativada'} com sucesso!`,
+    });
   };
 
   return (
@@ -244,17 +220,17 @@ const SettingsBooths: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Barracas Cadastradas ({booths.length})</CardTitle>
+          <CardTitle>Barracas Cadastradas ({state.booths.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {booths.length === 0 ? (
+          {state.booths.length === 0 ? (
             <p className="text-gray-500 text-center py-4">
               Nenhuma barraca cadastrada ainda
             </p>
           ) : (
             <div className="space-y-3">
-              {booths.map((booth) => {
-                const boothProductsCount = products.filter(p => p.booth === booth.name).length;
+              {state.booths.map((booth) => {
+                const boothProductsCount = state.products.filter(p => p.booth === booth.name).length;
                 return (
                   <div
                     key={booth.id}

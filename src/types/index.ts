@@ -1,14 +1,14 @@
+
 export interface Participant {
   id: string;
   name: string;
-  email?: string; // Add email as optional property
   cardNumber: string;
   qrCode: string;
   balance: number;
   initialBalance: number;
   createdAt: string;
   isActive: boolean;
-  phone?: string;
+  phone?: string; // Novo campo
 }
 
 export interface Transaction {
