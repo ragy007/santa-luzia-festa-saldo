@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,11 @@ import { toast } from '@/hooks/use-toast';
 const SettingsGeneral: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const { clearAllData } = useApp();
+  
+  if (!settings) {
+    return <div>Carregando configurações...</div>;
+  }
+
   const [formData, setFormData] = useState({
     name: settings.name,
     date: settings.date,
@@ -48,33 +54,49 @@ const SettingsGeneral: React.FC = () => {
     }
   };
 
-  const handleClearAllData = () => {
-    clearAllData();
-    toast({
-      title: "🗑️ Dados limpos!",
-      description: "Todos os dados da festa anterior foram removidos. Você pode começar uma nova festa.",
-    });
+  const handleClearAllData = async () => {
+    try {
+      await clearAllData();
+      toast({
+        title: "🗑️ Dados limpos!",
+        description: "Todos os dados da festa anterior foram removidos. Você pode começar uma nova festa.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao limpar dados",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleNewFestival = () => {
-    // Limpar todos os dados
-    clearAllData();
-    
-    // Resetar configurações para uma nova festa
-    const today = new Date().toISOString().split('T')[0];
-    const newSettings = {
-      ...formData,
-      date: today,
-      isActive: true
-    };
-    
-    setFormData(newSettings);
-    updateSettings(newSettings);
-    
-    toast({
-      title: "🎉 Nova festa criada!",
-      description: "Todos os dados foram limpos e as configurações foram resetadas para uma nova festa.",
-    });
+  const handleNewFestival = async () => {
+    try {
+      // Limpar todos os dados
+      await clearAllData();
+      
+      // Resetar configurações para uma nova festa
+      const today = new Date().toISOString().split('T')[0];
+      const newSettings = {
+        ...formData,
+        date: today,
+        isActive: true
+      };
+      
+      setFormData(newSettings);
+      await updateSettings(newSettings);
+      
+      toast({
+        title: "🎉 Nova festa criada!",
+        description: "Todos os dados foram limpos e as configurações foram resetadas para uma nova festa.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao criar nova festa",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

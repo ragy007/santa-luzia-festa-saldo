@@ -14,13 +14,18 @@ interface AppContextType extends AppState {
   getParticipantByCard: (cardNumber: string) => Participant | undefined;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => Promise<void>;
   getTotalSales: () => number;
+  getTotalActiveBalance: () => number;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => Promise<void>;
+  updateBooth: (id: string, updates: Partial<Booth>) => Promise<void>;
+  deleteBooth: (id: string) => Promise<void>;
   addClosingOption: (option: ClosingOption) => void;
   updateClosingOption: (participantId: string, option: Partial<ClosingOption>) => void;
   getClosingOption: (participantId: string) => ClosingOption | undefined;
   setFestivalActive: (active: boolean) => void;
+  clearAllData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -72,7 +77,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { 
     participants, 
     loading: participantsLoading,
-    addParticipant,
+    addParticipant: addParticipantHook,
     updateParticipant,
     deleteParticipant,
     getParticipantByCard
@@ -81,21 +86,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const {
     transactions,
     loading: transactionsLoading,
-    addTransaction,
+    addTransaction: addTransactionHook,
     getTotalSales
   } = useTransactions();
 
   const {
     products,
     loading: productsLoading,
-    addProduct,
+    addProduct: addProductHook,
     updateProduct,
     deleteProduct
   } = useFestivalProducts();
 
-  const { booths, loading: boothsLoading } = useFestivalBooths();
+  const { 
+    booths, 
+    loading: boothsLoading,
+    addBooth: addBoothHook,
+    updateBooth,
+    deleteBooth
+  } = useFestivalBooths();
 
   const loading = participantsLoading || transactionsLoading || productsLoading || boothsLoading;
+
+  // Wrapper functions to ensure void return type
+  const addParticipant = async (participant: Omit<Participant, 'id' | 'qrCode' | 'createdAt'>) => {
+    await addParticipantHook(participant);
+  };
+
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+    await addTransactionHook(transaction);
+  };
+
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    await addProductHook(product);
+  };
+
+  const addBooth = async (booth: Omit<Booth, 'id' | 'totalSales'>) => {
+    await addBoothHook(booth);
+  };
+
+  const getTotalActiveBalance = (): number => {
+    return participants.reduce((total, p) => total + p.balance, 0);
+  };
+
+  const clearAllData = async () => {
+    // This would need implementation to clear all data from Supabase
+    console.log('Clear all data functionality needs implementation');
+  };
 
   // Funções para closing options (mantidas no estado local por enquanto)
   const addClosingOption = (option: ClosingOption) => {
@@ -128,13 +165,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getParticipantByCard,
     addTransaction,
     getTotalSales,
+    getTotalActiveBalance,
     addProduct,
     updateProduct,
     deleteProduct,
+    addBooth,
+    updateBooth,
+    deleteBooth,
     addClosingOption,
     updateClosingOption,
     getClosingOption,
-    setFestivalActive
+    setFestivalActive,
+    clearAllData
   };
 
   return (
