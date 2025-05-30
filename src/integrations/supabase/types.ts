@@ -362,6 +362,42 @@ export type Database = {
           },
         ]
       }
+      user_accounts: {
+        Row: {
+          booth_id: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          password: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          booth_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          password: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          booth_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          password?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
