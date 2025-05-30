@@ -42,22 +42,6 @@ const Auth: React.FC = () => {
     console.log('Attempting sign in with:', credentials.email);
 
     try {
-      // Primeiro, verificar se o usuário existe na tabela user_accounts
-      const { data: userAccount, error: userError } = await supabase
-        .from('user_accounts')
-        .select('*')
-        .eq('email', credentials.email)
-        .eq('password', credentials.password)
-        .eq('is_active', true)
-        .single();
-
-      if (userError || !userAccount) {
-        console.error('User account error:', userError);
-        setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
-        return;
-      }
-
-      // Se o usuário existe na tabela, fazer login via Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -68,35 +52,8 @@ const Auth: React.FC = () => {
       if (error) {
         console.error('Auth error:', error);
         
-        // Se o usuário não existe no Supabase Auth, tentar criar
         if (error.message === 'Invalid login credentials') {
-          console.log('User not found in Auth, attempting to create...');
-          
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: credentials.email,
-            password: credentials.password,
-            options: {
-              data: {
-                full_name: userAccount.name,
-                role: userAccount.role
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.error('Sign up error:', signUpError);
-            setError('Erro ao criar conta. Tente novamente.');
-            return;
-          }
-
-          if (signUpData.user) {
-            console.log('User created and signed in:', signUpData.user.email);
-            toast({
-              title: "Login realizado!",
-              description: "Bem-vindo ao sistema!",
-            });
-            // O redirecionamento será feito pelo useEffect
-          }
+          setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
         } else {
           setError(error.message || 'Erro ao fazer login. Tente novamente.');
         }

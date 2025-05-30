@@ -52,43 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          try {
-            // Buscar perfil do usuário na tabela user_accounts
-            const { data: userAccount, error } = await supabase
-              .from('user_accounts')
-              .select('*')
-              .eq('email', session.user.email)
-              .single();
-
-            if (error) {
-              console.error('Error fetching user account:', error);
-              // Criar perfil padrão temporário para evitar problemas
-              const defaultProfile: Profile = {
-                id: session.user.id,
-                full_name: session.user.email?.split('@')[0] || 'Usuário',
-                role: 'admin' // Assumir admin por padrão para os usuários de teste
-              };
-              setProfile(defaultProfile);
-            } else {
-              // Mapear dados do user_account para o perfil
-              const mappedProfile: Profile = {
-                id: session.user.id,
-                full_name: userAccount.name,
-                role: userAccount.role as 'admin' | 'operator',
-                booth_id: userAccount.booth_id || undefined
-              };
-              setProfile(mappedProfile);
-            }
-          } catch (error) {
-            console.error('Error loading user profile:', error);
-            // Fallback para perfil padrão
-            const defaultProfile: Profile = {
-              id: session.user.id,
-              full_name: session.user.email?.split('@')[0] || 'Usuário',
-              role: 'admin'
-            };
-            setProfile(defaultProfile);
-          }
+          // Criar perfil padrão temporário para evitar problemas
+          const defaultProfile: Profile = {
+            id: session.user.id,
+            full_name: session.user.email?.split('@')[0] || 'Usuário',
+            role: 'admin' // Assumir admin por padrão para os usuários de teste
+          };
+          setProfile(defaultProfile);
         } else {
           setProfile(null);
         }
@@ -118,40 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            try {
-              // Buscar perfil do usuário
-              const { data: userAccount, error } = await supabase
-                .from('user_accounts')
-                .select('*')
-                .eq('email', session.user.email)
-                .single();
-
-              if (!error && userAccount) {
-                const mappedProfile: Profile = {
-                  id: session.user.id,
-                  full_name: userAccount.name,
-                  role: userAccount.role as 'admin' | 'operator',
-                  booth_id: userAccount.booth_id || undefined
-                };
-                setProfile(mappedProfile);
-              } else {
-                // Perfil padrão se não encontrar
-                const defaultProfile: Profile = {
-                  id: session.user.id,
-                  full_name: session.user.email?.split('@')[0] || 'Usuário',
-                  role: 'admin'
-                };
-                setProfile(defaultProfile);
-              }
-            } catch (error) {
-              console.error('Error loading profile:', error);
-              const defaultProfile: Profile = {
-                id: session.user.id,
-                full_name: session.user.email?.split('@')[0] || 'Usuário',
-                role: 'admin'
-              };
-              setProfile(defaultProfile);
-            }
+            const defaultProfile: Profile = {
+              id: session.user.id,
+              full_name: session.user.email?.split('@')[0] || 'Usuário',
+              role: 'admin'
+            };
+            setProfile(defaultProfile);
           }
           
           setLoading(false);
