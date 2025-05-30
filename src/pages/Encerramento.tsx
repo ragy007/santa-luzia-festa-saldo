@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { useApp } from '../contexts/AppContext';
 import { Participant, ClosingOption } from '../types';
 import { Search, DollarSign, Gift, Heart, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
@@ -34,7 +36,7 @@ const Encerramento: React.FC = () => {
 
   const filteredParticipants = participants.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.email && p.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     p.cardNumber.includes(searchTerm)
   );
 
@@ -68,10 +70,11 @@ const Encerramento: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value, type, checked } = e.target;
+    const { id, value, type } = e.target;
+    const target = e.target as HTMLInputElement;
   
     if (type === 'checkbox') {
-      setClosingData(prev => ({ ...prev, [id]: checked }));
+      setClosingData(prev => ({ ...prev, [id]: target.checked }));
     } else if (id === 'amount') {
       const parsedValue = parseFloat(value);
       setClosingData(prev => ({ ...prev, amount: isNaN(parsedValue) ? 0 : parsedValue }));
@@ -155,7 +158,7 @@ const Encerramento: React.FC = () => {
                       onClick={() => handleSelectParticipant(participant)}
                     >
                       <div className="font-medium">{participant.name}</div>
-                      <div className="text-sm text-gray-500">{participant.email} • #{participant.cardNumber}</div>
+                      <div className="text-sm text-gray-500">{participant.email || 'Email não informado'} • #{participant.cardNumber}</div>
                       <Badge variant="secondary">Saldo: R$ {participant.balance.toFixed(2)}</Badge>
                     </li>
                   ))}
@@ -180,7 +183,7 @@ const Encerramento: React.FC = () => {
                   Informações do Participante
                 </div>
                 <div className="text-sm text-gray-500">
-                  {selectedParticipant.email} • #{selectedParticipant.cardNumber}
+                  {selectedParticipant.email || 'Email não informado'} • #{selectedParticipant.cardNumber}
                 </div>
                 <div className="mt-2">
                   <Badge variant="outline">
