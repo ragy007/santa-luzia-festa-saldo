@@ -26,7 +26,21 @@ const TestCredentials: React.FC<TestCredentialsProps> = ({ onCredentialSelect })
             onClick={() => onCredentialSelect('operador@festa.com', '123456')}
             className="block text-left hover:bg-blue-100 p-2 rounded w-full text-sm border border-blue-200"
           >
-            <strong>👤 Operador:</strong> operador@festa.com / 123456
+            <strong>👤 Operador 1:</strong> operador@festa.com / 123456
+          </button>
+          <button 
+            type="button"
+            onClick={() => onCredentialSelect('operador2@festa.com', '123456')}
+            className="block text-left hover:bg-blue-100 p-2 rounded w-full text-sm border border-blue-200"
+          >
+            <strong>👤 Operador 2:</strong> operador2@festa.com / 123456
+          </button>
+          <button 
+            type="button"
+            onClick={() => onCredentialSelect('operador3@festa.com', '123456')}
+            className="block text-left hover:bg-blue-100 p-2 rounded w-full text-sm border border-blue-200"
+          >
+            <strong>👤 Operador 3:</strong> operador3@festa.com / 123456
           </button>
         </div>
         <div className="mt-2 text-xs text-blue-500">
