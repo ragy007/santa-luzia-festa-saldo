@@ -1,54 +1,54 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '../components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSettings } from '../contexts/SettingsContext';
-import { Settings as SettingsIcon, Palette, Users, Calendar, Store, Sparkles } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import SettingsGeneral from '../components/SettingsGeneral';
 import SettingsTheme from '../components/SettingsTheme';
-import SettingsUsers from '../components/SettingsUsers';
 import SettingsBooths from '../components/SettingsBooths';
+import SettingsUsers from '../components/SettingsUsers';
 import SettingsIcons from '../components/SettingsIcons';
+import SettingsDatabase from '../components/SettingsDatabase';
+import { Settings as SettingsIcon, Palette, Store, Users, Database, Zap } from 'lucide-react';
 
 const Settings: React.FC = () => {
   return (
-    <Layout title="Configurações do Sistema">
-      <div className="space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            ⚙️ Configurações
+    <Layout>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold flex items-center">
+            <SettingsIcon className="h-6 w-6 mr-2" />
+            Configurações
           </h1>
-          <p className="text-gray-600">
-            Personalize sua festa e gerencie o sistema
+          <p className="text-gray-600 mt-1">
+            Configure sua festa comunitária e gerencie o sistema
           </p>
         </div>
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+        <Tabs defaultValue="general" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="general" className="flex items-center">
+              <SettingsIcon className="h-4 w-4 mr-2" />
               Geral
             </TabsTrigger>
-            <TabsTrigger value="booths" className="flex items-center gap-2">
-              <Store className="h-4 w-4" />
-              Barracas
-            </TabsTrigger>
-            <TabsTrigger value="icons" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Ícones
-            </TabsTrigger>
-            <TabsTrigger value="theme" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
+            <TabsTrigger value="theme" className="flex items-center">
+              <Palette className="h-4 w-4 mr-2" />
               Tema
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+            <TabsTrigger value="icons" className="flex items-center">
+              <Zap className="h-4 w-4 mr-2" />
+              Ícones
+            </TabsTrigger>
+            <TabsTrigger value="booths" className="flex items-center">
+              <Store className="h-4 w-4 mr-2" />
+              Barracas
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center">
+              <Users className="h-4 w-4 mr-2" />
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex items-center">
+              <Database className="h-4 w-4 mr-2" />
+              Banco
             </TabsTrigger>
           </TabsList>
 
@@ -56,20 +56,24 @@ const Settings: React.FC = () => {
             <SettingsGeneral />
           </TabsContent>
 
-          <TabsContent value="booths">
-            <SettingsBooths />
+          <TabsContent value="theme">
+            <SettingsTheme />
           </TabsContent>
 
           <TabsContent value="icons">
             <SettingsIcons />
           </TabsContent>
 
-          <TabsContent value="theme">
-            <SettingsTheme />
+          <TabsContent value="booths">
+            <SettingsBooths />
           </TabsContent>
 
           <TabsContent value="users">
             <SettingsUsers />
+          </TabsContent>
+
+          <TabsContent value="database">
+            <SettingsDatabase />
           </TabsContent>
         </Tabs>
       </div>
