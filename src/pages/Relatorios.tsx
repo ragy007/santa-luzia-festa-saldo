@@ -18,6 +18,8 @@ const Relatorios: React.FC = () => {
   const totalParticipants = participants.length;
   const totalSales = getTotalSales();
   const totalActiveBalance = getTotalActiveBalance();
+  
+  // Fix the arithmetic operation by ensuring proper type conversion
   const totalLoaded = participants.reduce((total, p) => {
     const initialBalance = Number(p.initialBalance) || 0;
     return total + initialBalance;
@@ -239,7 +241,7 @@ const Relatorios: React.FC = () => {
                         </span>
                         <span className="font-medium text-gray-900">{product}</span>
                       </div>
-                      <span className="font-bold text-green-600">{String(quantity)} unidades</span>
+                      <span className="font-bold text-green-600">{quantity} unidades</span>
                     </div>
                   ))
                 ) : (
