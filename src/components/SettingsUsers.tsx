@@ -33,14 +33,17 @@ const SettingsUsers: React.FC = () => {
     }
 
     try {
+      // Generate a temporary UUID for the profile
+      const tempId = crypto.randomUUID();
+      
       // Create the user profile in the database
-      // The user will need to sign up with this email to complete the process
       const { error } = await supabase
         .from('profiles')
         .insert({
+          id: tempId,
           full_name: formData.fullName,
           role: formData.role,
-          booth_id: formData.boothId === 'none' ? null : formData.boothId
+          booth_id: formData.boothId === 'none' || formData.boothId === '' ? null : formData.boothId
         });
 
       if (error) throw error;
@@ -54,14 +57,14 @@ const SettingsUsers: React.FC = () => {
       setShowInviteForm(false);
 
       toast({
-        title: "Convite enviado!",
+        title: "Perfil criado!",
         description: `Instrua ${formData.fullName} a criar uma conta com o email ${formData.email}`,
       });
     } catch (error) {
-      console.error('Error creating user invitation:', error);
+      console.error('Error creating user profile:', error);
       toast({
         title: "Erro",
-        description: "Erro ao criar convite de usuário",
+        description: "Erro ao criar perfil de usuário",
         variant: "destructive"
       });
     }
@@ -71,7 +74,6 @@ const SettingsUsers: React.FC = () => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     try {
-      // Delete from profiles (this will cascade to auth.users via trigger if needed)
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -132,16 +134,16 @@ const SettingsUsers: React.FC = () => {
           </CardTitle>
           <Button onClick={() => setShowInviteForm(!showInviteForm)}>
             <UserPlus className="h-4 w-4 mr-2" />
-            Convidar Usuário
+            Criar Perfil
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
               <div>
-                <h4 className="font-medium text-yellow-800">Sistema de Autenticação Atualizado</h4>
-                <p className="text-sm text-yellow-700 mt-1">
+                <h4 className="font-medium text-blue-800">Sistema de Autenticação Seguro</h4>
+                <p className="text-sm text-blue-700 mt-1">
                   O sistema agora usa autenticação segura do Supabase. Usuários devem criar suas próprias contas
                   na aba "Cadastro" da tela de login. Administradores podem gerenciar perfis aqui.
                 </p>
