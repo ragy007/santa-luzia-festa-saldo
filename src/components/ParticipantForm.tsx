@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useApp } from '../contexts/AppContext';
+import { useModernApp } from '../contexts/ModernAppContext';
 import { UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const ParticipantForm: React.FC = () => {
-  const { addParticipant, getParticipantByCard } = useApp();
+  const { addParticipant, getParticipantByCard } = useModernApp();
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
@@ -51,7 +51,7 @@ const ParticipantForm: React.FC = () => {
         return;
       }
 
-      addParticipant({
+      await addParticipant({
         name: formData.name || `Participante ${formData.cardNumber}`,
         cardNumber: formData.cardNumber,
         phone: formData.phone,
@@ -70,9 +70,10 @@ const ParticipantForm: React.FC = () => {
 
       toast({
         title: "Sucesso!",
-        description: "Participante cadastrado com sucesso",
+        description: "Participante cadastrado diretamente no banco de dados",
       });
     } catch (error) {
+      console.error('Erro ao cadastrar participante:', error);
       toast({
         title: "Erro",
         description: "Erro ao cadastrar participante",
