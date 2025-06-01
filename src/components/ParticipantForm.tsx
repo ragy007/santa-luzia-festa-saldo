@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 
 const ParticipantForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +16,7 @@ const ParticipantForm: React.FC = () => {
     initialBalance: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addParticipant } = useSupabaseData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +31,6 @@ const ParticipantForm: React.FC = () => {
           description: "Número do cartão é obrigatório",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return;
       }
 
@@ -40,33 +40,19 @@ const ParticipantForm: React.FC = () => {
           description: "Saldo inicial não pode ser negativo",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return;
       }
 
-      console.log('Salvando no Supabase...');
+      console.log('Salvando via useSupabaseData...');
       
-      // Salvar direto no Supabase
-      const { data, error } = await supabase
-        .from('participants')
-        .insert({
-          name: formData.name || `Participante ${formData.cardNumber}`,
-          card_number: formData.cardNumber,
-          qr_code: formData.cardNumber,
-          balance: formData.initialBalance,
-          initial_balance: formData.initialBalance,
-          phone: formData.phone,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro do Supabase:', error);
-        throw error;
-      }
-
-      console.log('Participante salvo:', data);
+      await addParticipant({
+        name: formData.name || `Participante ${formData.cardNumber}`,
+        cardNumber: formData.cardNumber,
+        phone: formData.phone,
+        balance: formData.initialBalance,
+        initialBalance: formData.initialBalance,
+        isActive: true
+      });
 
       // Limpar formulário após sucesso
       setFormData({
@@ -78,11 +64,11 @@ const ParticipantForm: React.FC = () => {
 
       toast({
         title: "Sucesso!",
-        description: "Participante cadastrado no banco de dados",
+        description: "Participante cadastrado com sucesso",
       });
 
     } catch (error) {
-      console.error('Erro completo:', error);
+      console.error('Erro ao cadastrar:', error);
       toast({
         title: "Erro",
         description: `Erro ao cadastrar: ${error.message || 'Erro desconhecido'}`,
