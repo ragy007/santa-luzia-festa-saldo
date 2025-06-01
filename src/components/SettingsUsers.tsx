@@ -5,14 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSettings } from '../contexts/SettingsContext';
-import { useApp } from '../contexts/AppContext';
+import { useModernApp } from '../contexts/ModernAppContext';
 import { UserPlus, Trash2, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const SettingsUsers: React.FC = () => {
-  const { users, addUser, deleteUser } = useSettings();
-  const { booths } = useApp();
+  const { users, addUser, deleteUser, booths } = useModernApp();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -22,7 +20,7 @@ const SettingsUsers: React.FC = () => {
     boothId: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password || !formData.name) {
@@ -44,37 +42,45 @@ const SettingsUsers: React.FC = () => {
       return;
     }
 
-    addUser({
-      email: formData.email,
-      password: formData.password,
-      name: formData.name,
-      role: formData.role,
-      boothId: formData.boothId === 'none' ? undefined : formData.boothId,
-      isActive: true
-    });
+    try {
+      await addUser({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: formData.role,
+        boothId: formData.boothId === 'none' ? undefined : formData.boothId,
+        isActive: true
+      });
 
-    setFormData({
-      email: '',
-      password: '',
-      name: '',
-      role: 'operator',
-      boothId: ''
-    });
-    setShowForm(false);
+      setFormData({
+        email: '',
+        password: '',
+        name: '',
+        role: 'operator',
+        boothId: ''
+      });
+      setShowForm(false);
 
-    toast({
-      title: "Usuário criado!",
-      description: "Novo usuário foi adicionado com sucesso",
-    });
+      toast({
+        title: "Usuário criado!",
+        description: "Novo usuário foi adicionado com sucesso. Agora pode fazer login no sistema.",
+      });
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+    }
   };
 
-  const handleDelete = (userId: string) => {
+  const handleDelete = async (userId: string) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
-      deleteUser(userId);
-      toast({
-        title: "Usuário excluído",
-        description: "O usuário foi removido do sistema",
-      });
+      try {
+        await deleteUser(userId);
+        toast({
+          title: "Usuário excluído",
+          description: "O usuário foi removido do sistema",
+        });
+      } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+      }
     }
   };
 
@@ -205,6 +211,19 @@ const SettingsUsers: React.FC = () => {
                 </div>
               ))
             )}
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">Credenciais de Teste Disponíveis:</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <div>• <strong>Admin:</strong> admin@festa.com / 123456</div>
+              <div>• <strong>Operador 1:</strong> operador@festa.com / 123456</div>
+              <div>• <strong>Operador 2:</strong> operador2@festa.com / 123456</div>
+              <div>• <strong>Operador 3:</strong> operador3@festa.com / 123456</div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Usuários criados nesta tela também podem fazer login no sistema.
+            </p>
           </div>
         </CardContent>
       </Card>
