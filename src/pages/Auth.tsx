@@ -32,15 +32,15 @@ const Auth: React.FC = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (!authLoading && user && profile) {
-      console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
-      
-      // Redirect based on role
-      if (profile.role === 'admin') {
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/consumo', { replace: true });
-      }
+    if (!authLoading && user) {
+      console.log('User is logged in, redirecting...');
+      setTimeout(() => {
+        if (profile?.role === 'admin') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/consumo', { replace: true });
+        }
+      }, 100);
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -53,36 +53,32 @@ const Auth: React.FC = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
+        email: credentials.email.trim(),
         password: credentials.password,
       });
 
-      console.log('Sign in response:', { data, error });
-
       if (error) {
-        console.error('Auth error:', error);
-        
+        console.error('Sign in error:', error);
         if (error.message === 'Invalid login credentials') {
-          setError('Email ou senha incorretos. Use as credenciais de teste ou crie uma nova conta.');
+          setError('Email ou senha incorretos. Verifique as credenciais ou crie uma nova conta.');
         } else {
-          setError(error.message || 'Erro ao fazer login. Tente novamente.');
+          setError(error.message || 'Erro ao fazer login.');
         }
         setLoading(false);
         return;
       }
 
       if (data.user) {
-        console.log('User signed in successfully:', data.user.email);
+        console.log('Login successful for:', data.user.email);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
         });
-        // The redirection will be handled by useEffect
+        // Redirection will be handled by useEffect
       }
     } catch (error: any) {
-      console.error('Erro no login:', error);
-      setError('Erro inesperado ao fazer login. Tente novamente.');
-    } finally {
+      console.error('Login error:', error);
+      setError('Erro inesperado ao fazer login.');
       setLoading(false);
     }
   };
@@ -105,10 +101,8 @@ const Auth: React.FC = () => {
     }
 
     try {
-      console.log('Attempting signup for:', signupData.email);
-      
       const { data, error } = await supabase.auth.signUp({
-        email: signupData.email,
+        email: signupData.email.trim(),
         password: signupData.password,
         options: {
           data: {
@@ -116,8 +110,6 @@ const Auth: React.FC = () => {
           }
         }
       });
-
-      console.log('Signup response:', { data, error });
 
       if (error) {
         console.error('Signup error:', error);
@@ -127,13 +119,11 @@ const Auth: React.FC = () => {
       }
 
       if (data.user) {
-        console.log('User created successfully:', data.user.email);
         toast({
           title: "Conta criada!",
-          description: "Sua conta foi criada com sucesso. Você já pode fazer login.",
+          description: "Sua conta foi criada com sucesso.",
         });
         
-        // Clear signup form
         setSignupData({
           email: '',
           password: '',
@@ -142,8 +132,9 @@ const Auth: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Erro no cadastro:', error);
-      setError('Erro inesperado ao criar conta. Tente novamente.');
+      console.error('Signup error:', error);
+      setError('Erro inesperado ao criar conta.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -154,7 +145,6 @@ const Auth: React.FC = () => {
     setError(null);
   };
 
-  // Show loading while verifying authentication
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

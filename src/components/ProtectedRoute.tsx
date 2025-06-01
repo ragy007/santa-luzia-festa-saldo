@@ -16,7 +16,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, profile, loading } = useAuth();
 
-  console.log('ProtectedRoute check:', { user: user?.email, profile, loading });
+  console.log('ProtectedRoute check:', { 
+    user: user?.email, 
+    profile: profile?.role, 
+    loading,
+    requireAdmin,
+    allowedRoles 
+  });
 
   if (loading) {
     return (
@@ -29,19 +35,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!user) {
-    console.log('No user, redirecting to auth');
+  if (!user || !profile) {
+    console.log('No user or profile, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
-
-  if (!profile) {
-    console.log('No profile, redirecting to auth');
-    return <Navigate to="/auth" replace />;
-  }
-
-  console.log('User has profile, checking permissions:', { role: profile.role, requireAdmin, allowedRoles });
 
   if (requireAdmin && profile.role !== 'admin') {
+    console.log('Admin required but user is not admin');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -54,12 +54,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!allowedRoles.includes(profile.role)) {
+    console.log('Role not allowed:', profile.role, 'allowed:', allowedRoles);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Acesso Negado</h1>
           <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
-          <p className="text-sm text-gray-500 mt-2">Operadores só podem acessar a tela de vendas.</p>
         </div>
       </div>
     );
