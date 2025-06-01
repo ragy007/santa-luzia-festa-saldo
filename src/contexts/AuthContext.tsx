@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     console.log('Setting up auth state listener...');
     
-    // Configure Supabase client properly
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
@@ -53,21 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (session?.user && event !== 'SIGNED_OUT') {
           console.log('Loading profile for user:', session.user.id);
-          // Load profile for authenticated user
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
+          
+          // Use setTimeout to avoid potential auth deadlocks
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
 
-            console.log('Profile query result:', { profileData, error });
+              console.log('Profile query result:', { profileData, error });
 
-            if (error) {
-              console.error('Error loading profile:', error);
-              
-              // If profile doesn't exist, create a default one
-              if (error.code === 'PGRST116') {
+              if (error && error.code === 'PGRST116') {
+                // Profile doesn't exist, create it
                 console.log('Profile not found, creating default profile...');
                 const { data: newProfile, error: insertError } = await supabase
                   .from('profiles')
@@ -92,23 +91,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   };
                   setProfile(mappedProfile);
                 }
+              } else if (profileData) {
+                console.log('Profile loaded successfully:', profileData);
+                const mappedProfile: Profile = {
+                  id: profileData.id,
+                  full_name: profileData.full_name,
+                  role: profileData.role as 'admin' | 'operator',
+                  booth_id: profileData.booth_id
+                };
+                setProfile(mappedProfile);
               } else {
+                console.error('Error loading profile:', error);
                 setProfile(null);
               }
-            } else if (profileData) {
-              console.log('Profile loaded successfully:', profileData);
-              const mappedProfile: Profile = {
-                id: profileData.id,
-                full_name: profileData.full_name,
-                role: profileData.role as 'admin' | 'operator',
-                booth_id: profileData.booth_id
-              };
-              setProfile(mappedProfile);
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+              setProfile(null);
             }
-          } catch (error) {
-            console.error('Error fetching profile:', error);
-            setProfile(null);
-          }
+          }, 100);
         } else {
           console.log('No user session, clearing profile');
           setProfile(null);
@@ -121,21 +121,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Check current session
-    const checkSession = async () => {
+    const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
-          if (isMounted) {
-            setLoading(false);
-          }
-          return;
         }
         
         console.log('Initial session check:', session?.user?.email || 'no session');
         
-        if (isMounted && !session) {
-          // No session found, stop loading
+        if (!session && isMounted) {
           setLoading(false);
         }
       } catch (error) {
@@ -146,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    checkSession();
+    initializeAuth();
 
     return () => {
       isMounted = false;
@@ -158,8 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Signing out...');
       
-      // Attempt global sign out
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      const { error } = await supabase.auth.signOut();
       if (error) console.error('Sign out error:', error);
       
       setUser(null);

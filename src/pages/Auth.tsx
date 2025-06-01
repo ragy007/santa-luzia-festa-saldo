@@ -35,14 +35,12 @@ const Auth: React.FC = () => {
     if (!authLoading && user && profile) {
       console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
       
-      // Force navigation based on role
-      setTimeout(() => {
-        if (profile.role === 'admin') {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/consumo', { replace: true });
-        }
-      }, 100);
+      // Redirect based on role
+      if (profile.role === 'admin') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/consumo', { replace: true });
+      }
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -69,6 +67,7 @@ const Auth: React.FC = () => {
         } else {
           setError(error.message || 'Erro ao fazer login. Tente novamente.');
         }
+        setLoading(false);
         return;
       }
 
@@ -123,6 +122,7 @@ const Auth: React.FC = () => {
       if (error) {
         console.error('Signup error:', error);
         setError(error.message || 'Erro ao criar conta');
+        setLoading(false);
         return;
       }
 
