@@ -1,24 +1,24 @@
-
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useApp } from '../contexts/AppContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Power, AlertTriangle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { participants, transactions, booths, getTotalSales } = useSupabaseData();
+  const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
   const { settings, isFestivalActive } = useSettings();
 
-  const totalParticipants = participants?.length || 0;
-  const activeParticipants = participants?.filter(p => p.isActive)?.length || 0;
+  const totalParticipants = participants.length;
+  const activeParticipants = participants.filter(p => p.isActive).length;
   const totalSales = getTotalSales();
-  const totalActiveBalance = participants?.filter(p => p.isActive)?.reduce((total, p) => total + (Number(p.balance) || 0), 0) || 0;
-  const totalLoaded = participants?.reduce((total, p) => total + (Number(p.initialBalance) || 0), 0) || 0;
+  const totalActiveBalance = getTotalActiveBalance();
+  const totalLoaded = participants.reduce((total, p) => total + p.initialBalance, 0) + 
+                    transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => total + t.amount, 0);
 
   const recentTransactions = transactions
-    ?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    ?.slice(0, 5) || [];
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 5);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -200,24 +200,20 @@ const Dashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {booths
-                  ?.sort((a, b) => (Number(b.totalSales) || 0) - (Number(a.totalSales) || 0))
-                  ?.map((booth) => (
+                  .sort((a, b) => b.totalSales - a.totalSales)
+                  .map((booth) => (
                     <div key={booth.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-gray-900">{booth.name}</p>
                         <p className="text-sm text-gray-500">
-                          {transactions?.filter(t => t.booth === booth.name && t.type === 'debit')?.length || 0} vendas
+                          {transactions.filter(t => t.booth === booth.name && t.type === 'debit').length} vendas
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-lg">{formatCurrency(Number(booth.totalSales) || 0)}</p>
+                        <p className="font-bold text-lg">{formatCurrency(booth.totalSales)}</p>
                       </div>
                     </div>
-                  )) || (
-                    <p className="text-gray-500 text-center py-4">
-                      Nenhuma barraca cadastrada ainda
-                    </p>
-                  )}
+                  ))}
               </div>
             </CardContent>
           </Card>
@@ -234,7 +230,7 @@ const Dashboard: React.FC = () => {
               <div className="space-y-3">
                 {recentTransactions.length > 0 ? (
                   recentTransactions.map((transaction) => {
-                    const participant = participants?.find(p => p.id === transaction.participantId);
+                    const participant = participants.find(p => p.id === transaction.participantId);
                     return (
                       <div key={transaction.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div>
@@ -248,7 +244,7 @@ const Dashboard: React.FC = () => {
                         <div className={`font-bold ${
                           transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          {transaction.type === 'credit' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
+                          {transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
                         </div>
                       </div>
                     );

@@ -18,21 +18,13 @@ const Relatorios: React.FC = () => {
   const totalParticipants = participants.length;
   const totalSales = getTotalSales();
   const totalActiveBalance = getTotalActiveBalance();
-  
-  // Fix the arithmetic operation by ensuring proper type conversion
-  const totalLoaded = participants.reduce((total, p) => {
-    const initialBalance = Number(p.initialBalance) || 0;
-    return total + initialBalance;
-  }, 0) + 
-  transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => {
-    const amount = Number(t.amount) || 0;
-    return total + amount;
-  }, 0);
+  const totalLoaded = participants.reduce((total, p) => total + p.initialBalance, 0) + 
+                    transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => total + t.amount, 0);
 
   // Vendas por barraca
   const salesByBooth = booths.map(booth => ({
     name: booth.name,
-    sales: Number(booth.totalSales) || 0,
+    sales: booth.totalSales,
     transactions: transactions.filter(t => t.booth === booth.name && t.type === 'debit').length
   })).sort((a, b) => b.sales - a.sales);
 
@@ -58,14 +50,14 @@ const Relatorios: React.FC = () => {
 
   // Participantes com maior saldo
   const topBalances = participants
-    .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0))
+    .sort((a, b) => b.balance - a.balance)
     .slice(0, 10);
 
   // Vendas por hora (últimas 24h)
   const now = new Date();
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recentTransactions = transactions.filter(t => 
-    t.type === 'debit' && new Date(t.timestamp).getTime() >= last24h.getTime()
+    t.type === 'debit' && new Date(t.timestamp) >= last24h
   );
 
   const salesByHour = Array.from({ length: 24 }, (_, hour) => {
@@ -75,7 +67,7 @@ const Relatorios: React.FC = () => {
     });
     return {
       hour: `${hour.toString().padStart(2, '0')}:00`,
-      sales: hourTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
+      sales: hourTransactions.reduce((sum, t) => sum + t.amount, 0),
       count: hourTransactions.length
     };
   }).filter(h => h.sales > 0);
@@ -260,9 +252,9 @@ const Relatorios: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topBalances.filter(p => (Number(p.balance) || 0) > 0).length > 0 ? (
+                {topBalances.filter(p => p.balance > 0).length > 0 ? (
                   topBalances
-                    .filter(p => (Number(p.balance) || 0) > 0)
+                    .filter(p => p.balance > 0)
                     .map((participant, index) => (
                       <div key={participant.id} className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -274,7 +266,7 @@ const Relatorios: React.FC = () => {
                             <p className="text-sm text-gray-500">Cartão: {participant.cardNumber}</p>
                           </div>
                         </div>
-                        <span className="font-bold text-purple-600">{formatCurrency(Number(participant.balance) || 0)}</span>
+                        <span className="font-bold text-purple-600">{formatCurrency(participant.balance)}</span>
                       </div>
                     ))
                 ) : (

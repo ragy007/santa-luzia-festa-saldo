@@ -30,14 +30,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Credenciais válidas do sistema
-const validCredentials = [
-  { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
-  { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
-  { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
-  { email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -60,20 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          // Verificar se é um usuário válido do sistema
-          const validUser = validCredentials.find(cred => cred.email === session.user.email);
-          if (validUser) {
-            const defaultProfile: Profile = {
-              id: session.user.id,
-              full_name: validUser.name,
-              role: validUser.role
-            };
-            setProfile(defaultProfile);
-          } else {
-            // Usuário não autorizado
-            console.warn('Usuário não autorizado:', session.user.email);
-            setProfile(null);
-          }
+          // Criar perfil padrão temporário para evitar problemas
+          const defaultProfile: Profile = {
+            id: session.user.id,
+            full_name: session.user.email?.split('@')[0] || 'Usuário',
+            role: 'admin' // Assumir admin por padrão para os usuários de teste
+          };
+          setProfile(defaultProfile);
         } else {
           setProfile(null);
         }
@@ -103,15 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            const validUser = validCredentials.find(cred => cred.email === session.user.email);
-            if (validUser) {
-              const defaultProfile: Profile = {
-                id: session.user.id,
-                full_name: validUser.name,
-                role: validUser.role
-              };
-              setProfile(defaultProfile);
-            }
+            const defaultProfile: Profile = {
+              id: session.user.id,
+              full_name: session.user.email?.split('@')[0] || 'Usuário',
+              role: 'admin'
+            };
+            setProfile(defaultProfile);
           }
           
           setLoading(false);

@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useApp } from '../contexts/AppContext';
 import { UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 
 const ParticipantForm: React.FC = () => {
+  const { addParticipant, getParticipantByCard } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
@@ -16,19 +17,26 @@ const ParticipantForm: React.FC = () => {
     initialBalance: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addParticipant } = useSupabaseData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
-      console.log('Iniciando cadastro...', formData);
-      
       if (!formData.cardNumber) {
         toast({
           title: "Erro",
           description: "Número do cartão é obrigatório",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar se o cartão já existe
+      if (getParticipantByCard(formData.cardNumber)) {
+        toast({
+          title: "Erro", 
+          description: "Este número de cartão já está cadastrado",
           variant: "destructive",
         });
         return;
@@ -43,15 +51,13 @@ const ParticipantForm: React.FC = () => {
         return;
       }
 
-      console.log('Salvando via useSupabaseData...');
-      
-      await addParticipant({
+      addParticipant({
         name: formData.name || `Participante ${formData.cardNumber}`,
         cardNumber: formData.cardNumber,
         phone: formData.phone,
         balance: formData.initialBalance,
         initialBalance: formData.initialBalance,
-        isActive: true
+        isActive: true,
       });
 
       // Limpar formulário após sucesso
@@ -66,12 +72,10 @@ const ParticipantForm: React.FC = () => {
         title: "Sucesso!",
         description: "Participante cadastrado com sucesso",
       });
-
     } catch (error) {
-      console.error('Erro ao cadastrar:', error);
       toast({
         title: "Erro",
-        description: `Erro ao cadastrar: ${error.message || 'Erro desconhecido'}`,
+        description: "Erro ao cadastrar participante",
         variant: "destructive",
       });
     } finally {
