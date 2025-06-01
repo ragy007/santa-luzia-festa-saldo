@@ -5,27 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSettings } from '../contexts/SettingsContext';
-import { useApp } from '../contexts/AppContext';
-import { UserPlus, Trash2, Users } from 'lucide-react';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { UserPlus, Trash2, Users, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SettingsUsers: React.FC = () => {
-  const { users, addUser, deleteUser } = useSettings();
-  const { booths } = useApp();
-  const [showForm, setShowForm] = useState(false);
+  const { users, booths, loading } = useSupabaseData();
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    name: '',
+    fullName: '',
     role: 'operator' as 'admin' | 'operator',
     boothId: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password || !formData.name) {
+    if (!formData.email || !formData.fullName) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -34,49 +32,95 @@ const SettingsUsers: React.FC = () => {
       return;
     }
 
-    // Verificar se email já existe
-    if (users.some(user => user.email === formData.email)) {
+    try {
+      // Create the user profile in the database
+      // The user will need to sign up with this email to complete the process
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
+          full_name: formData.fullName,
+          role: formData.role,
+          booth_id: formData.boothId === 'none' ? null : formData.boothId
+        });
+
+      if (error) throw error;
+
+      setFormData({
+        email: '',
+        fullName: '',
+        role: 'operator',
+        boothId: ''
+      });
+      setShowInviteForm(false);
+
+      toast({
+        title: "Convite enviado!",
+        description: `Instrua ${formData.fullName} a criar uma conta com o email ${formData.email}`,
+      });
+    } catch (error) {
+      console.error('Error creating user invitation:', error);
       toast({
         title: "Erro",
-        description: "Este email já está cadastrado",
+        description: "Erro ao criar convite de usuário",
         variant: "destructive"
       });
-      return;
     }
-
-    addUser({
-      email: formData.email,
-      password: formData.password,
-      name: formData.name,
-      role: formData.role,
-      boothId: formData.boothId === 'none' ? undefined : formData.boothId,
-      isActive: true
-    });
-
-    setFormData({
-      email: '',
-      password: '',
-      name: '',
-      role: 'operator',
-      boothId: ''
-    });
-    setShowForm(false);
-
-    toast({
-      title: "Usuário criado!",
-      description: "Novo usuário foi adicionado com sucesso",
-    });
   };
 
-  const handleDelete = (userId: string) => {
-    if (confirm('Tem certeza que deseja excluir este usuário?')) {
-      deleteUser(userId);
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    try {
+      // Delete from profiles (this will cascade to auth.users via trigger if needed)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+
       toast({
         title: "Usuário excluído",
         description: "O usuário foi removido do sistema",
       });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir usuário",
+        variant: "destructive"
+      });
     }
   };
+
+  // Get actual profiles from Supabase instead of local users
+  const [profiles, setProfiles] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const loadProfiles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setProfiles(data || []);
+      } catch (error) {
+        console.error('Error loading profiles:', error);
+      }
+    };
+
+    loadProfiles();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -86,28 +130,41 @@ const SettingsUsers: React.FC = () => {
             <Users className="h-5 w-5 mr-2" />
             Usuários do Sistema
           </CardTitle>
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => setShowInviteForm(!showInviteForm)}>
             <UserPlus className="h-4 w-4 mr-2" />
-            Novo Usuário
+            Convidar Usuário
           </Button>
         </CardHeader>
         <CardContent>
-          {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg space-y-4">
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-yellow-800">Sistema de Autenticação Atualizado</h4>
+                <p className="text-sm text-yellow-700 mt-1">
+                  O sistema agora usa autenticação segura do Supabase. Usuários devem criar suas próprias contas
+                  na aba "Cadastro" da tela de login. Administradores podem gerenciar perfis aqui.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {showInviteForm && (
+            <form onSubmit={handleInviteUser} className="mb-6 p-4 border rounded-lg space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Nome Completo *</Label>
+                  <Label htmlFor="fullName">Nome Completo *</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Nome do operador"
+                    id="fullName"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Nome do usuário"
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email de Referência *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -116,23 +173,13 @@ const SettingsUsers: React.FC = () => {
                     placeholder="email@exemplo.com"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Este email deve ser usado pelo usuário para criar sua conta
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="password">Senha *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="Mínimo 6 caracteres"
-                    minLength={6}
-                    required
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="role">Perfil</Label>
                   <Select 
@@ -171,8 +218,8 @@ const SettingsUsers: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">Criar Usuário</Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                <Button type="submit">Criar Perfil</Button>
+                <Button type="button" variant="outline" onClick={() => setShowInviteForm(false)}>
                   Cancelar
                 </Button>
               </div>
@@ -180,25 +227,25 @@ const SettingsUsers: React.FC = () => {
           )}
 
           <div className="space-y-2">
-            {users.length === 0 ? (
+            {profiles.length === 0 ? (
               <p className="text-center text-gray-500 py-8">
                 Nenhum usuário cadastrado ainda
               </p>
             ) : (
-              users.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+              profiles.map(profile => (
+                <div key={profile.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="font-medium">{profile.full_name}</div>
+                    <div className="text-sm text-gray-500">ID: {profile.id}</div>
                     <div className="text-xs text-gray-400">
-                      {user.role === 'admin' ? 'Administrador' : 'Operador'} 
-                      {user.boothId && ` • ${booths.find(b => b.id === user.boothId)?.name}`}
+                      {profile.role === 'admin' ? 'Administrador' : 'Operador'} 
+                      {profile.booth_id && ` • ${booths.find(b => b.id === profile.booth_id)?.name}`}
                     </div>
                   </div>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDelete(user.id)}
+                    onClick={() => handleDeleteUser(profile.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

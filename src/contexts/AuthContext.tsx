@@ -30,13 +30,21 @@ export const useAuth = () => {
   return context;
 };
 
-// Credenciais válidas do sistema
-const validCredentials = [
-  { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
-  { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
-  { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
-  { email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
-];
+// Clean up auth state utility
+const cleanupAuthState = () => {
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -49,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     console.log('Setting up auth state listener...');
     
-    // Configurar listener de mudanças de autenticação
+    // Configure Supabase client properly
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
@@ -60,20 +68,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          // Verificar se é um usuário válido do sistema
-          const validUser = validCredentials.find(cred => cred.email === session.user.email);
-          if (validUser) {
-            const defaultProfile: Profile = {
-              id: session.user.id,
-              full_name: validUser.name,
-              role: validUser.role
-            };
-            setProfile(defaultProfile);
-          } else {
-            // Usuário não autorizado
-            console.warn('Usuário não autorizado:', session.user.email);
-            setProfile(null);
-          }
+          // Defer profile loading to prevent deadlocks
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (error) {
+                console.error('Error loading profile:', error);
+                setProfile(null);
+              } else if (profileData) {
+                const mappedProfile: Profile = {
+                  id: profileData.id,
+                  full_name: profileData.full_name,
+                  role: profileData.role as 'admin' | 'operator',
+                  booth_id: profileData.booth_id
+                };
+                setProfile(mappedProfile);
+              }
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+              setProfile(null);
+            }
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -84,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Verificar sessão atual
+    // Check current session
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -103,14 +123,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            const validUser = validCredentials.find(cred => cred.email === session.user.email);
-            if (validUser) {
-              const defaultProfile: Profile = {
-                id: session.user.id,
-                full_name: validUser.name,
-                role: validUser.role
-              };
-              setProfile(defaultProfile);
+            // Load profile
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (error) {
+                console.error('Error loading profile:', error);
+              } else if (profileData) {
+                const mappedProfile: Profile = {
+                  id: profileData.id,
+                  full_name: profileData.full_name,
+                  role: profileData.role as 'admin' | 'operator',
+                  booth_id: profileData.booth_id
+                };
+                setProfile(mappedProfile);
+              }
+            } catch (error) {
+              console.error('Error fetching profile:', error);
             }
           }
           
@@ -134,12 +167,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      try {
+        const { error } = await supabase.auth.signOut({ scope: 'global' });
+        if (error) console.error('Sign out error:', error);
+      } catch (error) {
+        console.error('Error during sign out:', error);
+      }
       
       setUser(null);
       setProfile(null);
       setSession(null);
+      
+      // Force page reload for clean state
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
