@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useFallbackAuth } from '@/hooks/useFallbackAuth';
 import { toast } from '@/hooks/use-toast';
 import AuthHeader from '@/components/auth/AuthHeader';
 import TestCredentials from '@/components/auth/TestCredentials';
@@ -19,6 +19,7 @@ const Auth: React.FC = () => {
   });
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
+  const { signInWithCredentials } = useFallbackAuth();
 
   // Redirecionar se já estiver logado
   useEffect(() => {
@@ -42,21 +43,11 @@ const Auth: React.FC = () => {
     console.log('Attempting sign in with:', credentials.email);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
-      });
-
-      console.log('Sign in response:', { data, error });
+      const { data, error } = await signInWithCredentials(credentials.email, credentials.password);
 
       if (error) {
         console.error('Auth error:', error);
-        
-        if (error.message === 'Invalid login credentials') {
-          setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
-        } else {
-          setError(error.message || 'Erro ao fazer login. Tente novamente.');
-        }
+        setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
         return;
       }
 

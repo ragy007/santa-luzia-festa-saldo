@@ -3,7 +3,6 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import { 
@@ -14,19 +13,9 @@ import {
   History, 
   BarChart3, 
   Settings,
-  Church,
   LogOut,
   Heart,
-  Cross,
-  Star,
-  Sun,
-  Moon,
-  Crown,
-  Sparkles,
-  Shield,
-  Gem,
-  Flame,
-  TreePine
+  Church
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -34,25 +23,9 @@ interface LayoutProps {
   title: string;
 }
 
-const iconMap = {
-  Heart,
-  Church,
-  Cross,
-  Star,
-  Sun,
-  Moon,
-  Crown,
-  Sparkles,
-  Shield,
-  Gem,
-  Flame,
-  TreePine
-};
-
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { settings } = useSettings();
   const { signOut, profile } = useAuth();
 
   const allMenuItems = [
@@ -72,34 +45,12 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     return !item.adminOnly;
   });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
   const handleSignOut = async () => {
     if (confirm('Tem certeza que deseja sair do sistema?')) {
       await signOut();
       navigate('/auth');
     }
   };
-
-  const getPrimaryIcon = () => {
-    const iconName = settings.primaryIcon || 'Heart';
-    return iconMap[iconName as keyof typeof iconMap] || Heart;
-  };
-
-  const getSecondaryIcon = () => {
-    const iconName = settings.secondaryIcon || 'Church';
-    return iconMap[iconName as keyof typeof iconMap] || Church;
-  };
-
-  const PrimaryIcon = getPrimaryIcon();
-  const SecondaryIcon = getSecondaryIcon();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

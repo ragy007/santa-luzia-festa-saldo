@@ -30,90 +30,53 @@ export const useAuth = () => {
   return context;
 };
 
-// Credenciais de fallback
-const fallbackCredentials = [
-  { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
-  { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
-  { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
-  { email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Função para validar usuário
-  const validateUser = async (email: string): Promise<Profile | null> => {
-    // Primeiro tentar no banco
-    try {
-      const { data: userAccount, error } = await supabase
-        .from('user_accounts')
-        .select('*')
-        .eq('email', email)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (!error && userAccount) {
-        return {
-          id: userAccount.id,
-          full_name: userAccount.name,
-          role: userAccount.role as 'admin' | 'operator',
-          booth_id: userAccount.booth_id
-        };
-      }
-    } catch (error) {
-      console.log('Erro ao buscar no banco, usando fallback');
-    }
-
-    // Fallback para credenciais hardcoded
-    const fallbackUser = fallbackCredentials.find(cred => cred.email === email);
-    if (fallbackUser) {
-      return {
-        id: email,
-        full_name: fallbackUser.name,
-        role: fallbackUser.role
-      };
-    }
-
-    return null;
-  };
-
   useEffect(() => {
-    console.log('Inicializando AuthProvider...');
-    
-    // Verificar sessão atual
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          const userProfile = await validateUser(session.user.email || '');
-          if (userProfile) {
-            setSession(session);
-            setUser(session.user);
-            setProfile(userProfile);
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao verificar sessão:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    let mounted = true;
 
-    // Configurar listener
+    // Configurar listener primeiro
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event);
         
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user && event !== 'SIGNED_OUT') {
-          const userProfile = await validateUser(session.user.email || '');
-          setProfile(userProfile);
+        if (session?.user) {
+          // Simular profile baseado no email para fallback
+          const email = session.user.email || '';
+          let mockProfile: Profile;
+
+          if (email === 'admin@festa.com') {
+            mockProfile = {
+              id: session.user.id,
+              full_name: 'Administrador',
+              role: 'admin'
+            };
+          } else if (email.includes('operador')) {
+            const operatorNumber = email.includes('operador2') ? '2' : 
+                                 email.includes('operador3') ? '3' : '1';
+            mockProfile = {
+              id: session.user.id,
+              full_name: `Operador ${operatorNumber}`,
+              role: 'operator'
+            };
+          } else {
+            mockProfile = {
+              id: session.user.id,
+              full_name: session.user.email || 'Usuário',
+              role: 'operator'
+            };
+          }
+
+          setProfile(mockProfile);
         } else {
           setProfile(null);
         }
@@ -122,9 +85,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    checkSession();
+    // Verificar sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
+      if (!session) {
+        setLoading(false);
+      }
+      // Se há sessão, o onAuthStateChange vai tratar
+    });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
