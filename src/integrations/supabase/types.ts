@@ -403,16 +403,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_user_booth: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       is_admin: {
         Args: { user_id?: string }
-        Returns: boolean
-      }
-      is_user_admin: {
-        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       update_booth_sales: {

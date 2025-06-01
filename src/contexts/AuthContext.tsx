@@ -30,112 +30,155 @@ export const useAuth = () => {
   return context;
 };
 
+// Credenciais de fallback (caso a tabela user_accounts esteja vazia)
+const fallbackCredentials = [
+  { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
+  { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
+  { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
+  { email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
+];
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId: string) => {
+  // Função para verificar credenciais no banco e fallback
+  const validateUser = async (email: string): Promise<Profile | null> => {
     try {
-      console.log('Loading profile for user:', userId);
-      
-      const { data: profileData, error } = await supabase
-        .from('profiles')
+      // Primeiro, tentar buscar na tabela user_accounts
+      const { data: userAccount, error } = await supabase
+        .from('user_accounts')
         .select('*')
-        .eq('id', userId)
-        .single();
+        .eq('email', email)
+        .eq('is_active', true)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error loading profile:', error);
-        if (error.code === 'PGRST116') {
-          // Profile doesn't exist, create default
-          console.log('Creating default profile...');
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              full_name: 'Usuário',
-              role: 'operator'
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Error creating profile:', insertError);
-            return null;
-          }
-          return newProfile;
-        }
-        return null;
+      if (!error && userAccount) {
+        return {
+          id: userAccount.id,
+          full_name: userAccount.name,
+          role: userAccount.role as 'admin' | 'operator',
+          booth_id: userAccount.booth_id
+        };
       }
 
-      return profileData;
+      // Fallback para credenciais hardcoded
+      const fallbackUser = fallbackCredentials.find(cred => cred.email === email);
+      if (fallbackUser) {
+        return {
+          id: email, // Usar email como ID para fallback
+          full_name: fallbackUser.name,
+          role: fallbackUser.role
+        };
+      }
+
+      return null;
     } catch (error) {
-      console.error('Profile load error:', error);
+      console.error('Erro ao validar usuário:', error);
+      
+      // Em caso de erro, usar fallback
+      const fallbackUser = fallbackCredentials.find(cred => cred.email === email);
+      if (fallbackUser) {
+        return {
+          id: email,
+          full_name: fallbackUser.name,
+          role: fallbackUser.role
+        };
+      }
       return null;
     }
   };
 
   useEffect(() => {
-    console.log('Setting up auth listener...');
+    let isMounted = true;
 
-    // Set up auth state listener
+    console.log('Setting up auth state listener...');
+    
+    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.email || 'no user');
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          const profileData = await loadProfile(session.user.id);
-          if (profileData) {
-            const mappedProfile: Profile = {
-              id: profileData.id,
-              full_name: profileData.full_name,
-              role: profileData.role as 'admin' | 'operator',
-              booth_id: profileData.booth_id
-            };
-            setProfile(mappedProfile);
+          // Validar usuário usando banco + fallback
+          const userProfile = await validateUser(session.user.email || '');
+          if (userProfile) {
+            setProfile(userProfile);
+            console.log('User validated:', userProfile.full_name, userProfile.role);
+          } else {
+            console.warn('Usuário não autorizado:', session.user.email);
+            setProfile(null);
           }
         } else {
           setProfile(null);
         }
         
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     );
 
-    // Check current session
+    // Verificar sessão atual
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          if (isMounted) {
+            setLoading(false);
+          }
+          return;
         }
-        console.log('Initial session check:', session?.user?.email || 'no session');
+        
+        console.log('Current session:', session?.user?.email || 'no session');
+        
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            const userProfile = await validateUser(session.user.email || '');
+            if (userProfile) {
+              setProfile(userProfile);
+            }
+          }
+          
+          setLoading(false);
+        }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkSession();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      console.log('Signing out...');
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
       setProfile(null);
       setSession(null);
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('Erro ao fazer logout:', error);
     }
   };
 

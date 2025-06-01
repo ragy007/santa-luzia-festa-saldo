@@ -9,10 +9,6 @@ import AuthHeader from '@/components/auth/AuthHeader';
 import TestCredentials from '@/components/auth/TestCredentials';
 import LoginForm from '@/components/auth/LoginForm';
 import AuthError from '@/components/auth/AuthError';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -21,26 +17,20 @@ const Auth: React.FC = () => {
     email: 'admin@festa.com',
     password: '123456'
   });
-  const [signupData, setSignupData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: ''
-  });
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Redirect if already logged in
+  // Redirecionar se já estiver logado
   useEffect(() => {
-    if (!authLoading && user) {
-      console.log('User is logged in, redirecting...');
-      setTimeout(() => {
-        if (profile?.role === 'admin') {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/consumo', { replace: true });
-        }
-      }, 100);
+    if (!authLoading && user && profile) {
+      console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
+      
+      // Redirecionamento baseado no role
+      if (profile.role === 'admin') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/consumo', { replace: true });
+      }
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -53,88 +43,34 @@ const Auth: React.FC = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email.trim(),
+        email: credentials.email,
         password: credentials.password,
       });
 
+      console.log('Sign in response:', { data, error });
+
       if (error) {
-        console.error('Sign in error:', error);
+        console.error('Auth error:', error);
+        
         if (error.message === 'Invalid login credentials') {
-          setError('Email ou senha incorretos. Verifique as credenciais ou crie uma nova conta.');
+          setError('Email ou senha incorretos. Tente usar as credenciais de teste disponíveis abaixo.');
         } else {
-          setError(error.message || 'Erro ao fazer login.');
+          setError(error.message || 'Erro ao fazer login. Tente novamente.');
         }
-        setLoading(false);
         return;
       }
 
       if (data.user) {
-        console.log('Login successful for:', data.user.email);
+        console.log('User signed in successfully:', data.user.email);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema!",
         });
-        // Redirection will be handled by useEffect
+        // O redirecionamento será feito pelo useEffect
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError('Erro inesperado ao fazer login.');
-      setLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    if (signupData.password !== signupData.confirmPassword) {
-      setError('As senhas não coincidem');
-      setLoading(false);
-      return;
-    }
-
-    if (signupData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: signupData.email.trim(),
-        password: signupData.password,
-        options: {
-          data: {
-            full_name: signupData.fullName,
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Signup error:', error);
-        setError(error.message || 'Erro ao criar conta');
-        setLoading(false);
-        return;
-      }
-
-      if (data.user) {
-        toast({
-          title: "Conta criada!",
-          description: "Sua conta foi criada com sucesso.",
-        });
-        
-        setSignupData({
-          email: '',
-          password: '',
-          confirmPassword: '',
-          fullName: ''
-        });
-      }
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      setError('Erro inesperado ao criar conta.');
-      setLoading(false);
+      console.error('Erro no login:', error);
+      setError('Erro inesperado ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -145,6 +81,7 @@ const Auth: React.FC = () => {
     setError(null);
   };
 
+  // Mostrar loading enquanto verifica autenticação
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -166,84 +103,14 @@ const Auth: React.FC = () => {
             <CardTitle className="text-center">Acesso ao Sistema</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Cadastro</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login" className="space-y-4">
-                <TestCredentials onCredentialSelect={handleTestCredentials} />
+            <TestCredentials onCredentialSelect={handleTestCredentials} />
 
-                <LoginForm
-                  credentials={credentials}
-                  loading={loading}
-                  onCredentialsChange={setCredentials}
-                  onSubmit={handleSignIn}
-                />
-              </TabsContent>
-              
-              <TabsContent value="signup" className="space-y-4">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div>
-                    <Label htmlFor="fullName">Nome Completo</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      value={signupData.fullName}
-                      onChange={(e) => setSignupData(prev => ({ ...prev, fullName: e.target.value }))}
-                      placeholder="Seu nome completo"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="signupEmail">Email</Label>
-                    <Input
-                      id="signupEmail"
-                      type="email"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="seu@email.com"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="signupPassword">Senha</Label>
-                    <Input
-                      id="signupPassword"
-                      type="password"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Mínimo 6 caracteres"
-                      minLength={6}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={signupData.confirmPassword}
-                      onChange={(e) => setSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Confirme sua senha"
-                      required
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={loading}
-                  >
-                    {loading ? 'Criando conta...' : 'Criar Conta'}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+            <LoginForm
+              credentials={credentials}
+              loading={loading}
+              onCredentialsChange={setCredentials}
+              onSubmit={handleSignIn}
+            />
 
             {error && <AuthError error={error} />}
           </CardContent>
