@@ -4,12 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useModernApp } from '../contexts/ModernAppContext';
 import { UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const ParticipantForm: React.FC = () => {
-  const { addParticipant, getParticipantByCard } = useModernApp();
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
@@ -23,22 +22,15 @@ const ParticipantForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      console.log('Iniciando cadastro...', formData);
+      
       if (!formData.cardNumber) {
         toast({
           title: "Erro",
           description: "Número do cartão é obrigatório",
           variant: "destructive",
         });
-        return;
-      }
-
-      // Verificar se o cartão já existe
-      if (getParticipantByCard(formData.cardNumber)) {
-        toast({
-          title: "Erro", 
-          description: "Este número de cartão já está cadastrado",
-          variant: "destructive",
-        });
+        setIsSubmitting(false);
         return;
       }
 
@@ -48,17 +40,33 @@ const ParticipantForm: React.FC = () => {
           description: "Saldo inicial não pode ser negativo",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
-      await addParticipant({
-        name: formData.name || `Participante ${formData.cardNumber}`,
-        cardNumber: formData.cardNumber,
-        phone: formData.phone,
-        balance: formData.initialBalance,
-        initialBalance: formData.initialBalance,
-        isActive: true,
-      });
+      console.log('Salvando no Supabase...');
+      
+      // Salvar direto no Supabase
+      const { data, error } = await supabase
+        .from('participants')
+        .insert({
+          name: formData.name || `Participante ${formData.cardNumber}`,
+          card_number: formData.cardNumber,
+          qr_code: formData.cardNumber,
+          balance: formData.initialBalance,
+          initial_balance: formData.initialBalance,
+          phone: formData.phone,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro do Supabase:', error);
+        throw error;
+      }
+
+      console.log('Participante salvo:', data);
 
       // Limpar formulário após sucesso
       setFormData({
@@ -70,13 +78,14 @@ const ParticipantForm: React.FC = () => {
 
       toast({
         title: "Sucesso!",
-        description: "Participante cadastrado diretamente no banco de dados",
+        description: "Participante cadastrado no banco de dados",
       });
+
     } catch (error) {
-      console.error('Erro ao cadastrar participante:', error);
+      console.error('Erro completo:', error);
       toast({
         title: "Erro",
-        description: "Erro ao cadastrar participante",
+        description: `Erro ao cadastrar: ${error.message || 'Erro desconhecido'}`,
         variant: "destructive",
       });
     } finally {
