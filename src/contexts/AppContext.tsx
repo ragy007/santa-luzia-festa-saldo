@@ -73,6 +73,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabaseData.addTransaction(transaction);
   };
 
+  const wrappedAddProduct = async (product: any): Promise<void> => {
+    await supabaseData.addProduct(product);
+  };
+
   const value = {
     participants: supabaseData.participants || [],
     transactions: supabaseData.transactions || [],
@@ -90,7 +94,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateParticipant: supabaseData.updateParticipant,
     deleteParticipant: supabaseData.deleteParticipant,
     addTransaction: wrappedAddTransaction,
-    addProduct: supabaseData.addProduct,
+    addProduct: wrappedAddProduct,
     updateProduct: supabaseData.updateProduct,
     deleteProduct: supabaseData.deleteProduct,
     addBooth: supabaseData.addBooth,

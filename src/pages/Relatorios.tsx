@@ -18,8 +18,14 @@ const Relatorios: React.FC = () => {
   const totalParticipants = participants.length;
   const totalSales = getTotalSales();
   const totalActiveBalance = getTotalActiveBalance();
-  const totalLoaded = participants.reduce((total, p) => total + (Number(p.initial_balance) || 0), 0) + 
-                    transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => total + (Number(t.amount) || 0), 0);
+  const totalLoaded = participants.reduce((total, p) => {
+    const initialBalance = Number(p.initial_balance) || 0;
+    return total + initialBalance;
+  }, 0) + 
+  transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => {
+    const amount = Number(t.amount) || 0;
+    return total + amount;
+  }, 0);
 
   // Vendas por barraca
   const salesByBooth = booths.map(booth => ({
@@ -233,7 +239,7 @@ const Relatorios: React.FC = () => {
                         </span>
                         <span className="font-medium text-gray-900">{product}</span>
                       </div>
-                      <span className="font-bold text-green-600">{quantity} unidades</span>
+                      <span className="font-bold text-green-600">{String(quantity)} unidades</span>
                     </div>
                   ))
                 ) : (
