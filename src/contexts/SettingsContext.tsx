@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { Settings, UserAccount, Booth } from '@/types/settings';
+import { Settings, UserAccount } from '@/types/settings';
+import { Booth } from '@/types/index';
 
 interface SettingsContextType {
   settings: Settings;
@@ -9,7 +10,7 @@ interface SettingsContextType {
   addUser: (user: Omit<UserAccount, 'id' | 'createdAt'>) => void;
   updateUser: (id: string, user: Partial<UserAccount>) => void;
   deleteUser: (id: string) => void;
-  addBooth: (booth: Omit<Booth, 'id'>) => void;
+  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
   updateBooth: (id: string, booth: Partial<Booth>) => void;
   deleteBooth: (id: string) => void;
   isFestivalActive: () => boolean;
@@ -245,10 +246,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dispatch({ type: 'DELETE_USER', payload: id });
   };
 
-  const addBooth = (booth: Omit<Booth, 'id'>) => {
+  const addBooth = (booth: Omit<Booth, 'id' | 'totalSales'>) => {
     const newBooth: Booth = {
       ...booth,
       id: Math.random().toString(36).substr(2, 9),
+      totalSales: 0,
     };
     dispatch({ type: 'ADD_BOOTH', payload: newBooth });
   };

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppState, Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 
@@ -15,7 +16,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
-  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => void;
+  addBooth: (booth: Omit<Booth, 'id' | 'totalSales'>) => Booth;
   updateBooth: (id: string, booth: Partial<Booth>) => void;
   deleteBooth: (id: string) => void;
   addClosingOption: (option: Omit<ClosingOption, 'timestamp'>) => void;
@@ -241,13 +242,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dispatch({ type: 'DELETE_PRODUCT', payload: id });
   };
 
-  const addBooth = (booth: Omit<Booth, 'id' | 'totalSales'>) => {
+  const addBooth = (booth: Omit<Booth, 'id' | 'totalSales'>): Booth => {
     const newBooth: Booth = {
       ...booth,
       id: Math.random().toString(36).substr(2, 9),
       totalSales: 0,
     };
     dispatch({ type: 'ADD_BOOTH', payload: newBooth });
+    return newBooth;
   };
 
   const updateBooth = (id: string, booth: Partial<Booth>) => {

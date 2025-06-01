@@ -45,14 +45,6 @@ export interface Settings {
   };
 }
 
-// Add the Booth interface that SettingsContext expects
-export interface Booth {
-  id: string;
-  name: string;
-  description: string;
-  isActive: boolean;
-}
-
 export interface UserAccount {
   id: string;
   email: string;
