@@ -54,21 +54,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getTotalActiveBalance = () => {
     return supabaseData.participants
       ?.filter(p => p.is_active)
-      ?.reduce((total, p) => total + (p.balance || 0), 0) || 0;
+      ?.reduce((total, p) => total + (Number(p.balance) || 0), 0) || 0;
   };
 
   const clearAllData = () => {
-    // Implementação para limpar dados - por enquanto vazio
     console.log('Clear all data not implemented yet');
   };
 
   const addClosingOption = (option: any) => {
-    // Implementação para adicionar opção de fechamento - por enquanto vazio
     console.log('Add closing option not implemented yet', option);
   };
 
   const wrappedAddParticipant = async (participant: any): Promise<void> => {
     await supabaseData.addParticipant(participant);
+  };
+
+  const wrappedAddTransaction = async (transaction: any): Promise<void> => {
+    await supabaseData.addTransaction(transaction);
   };
 
   const value = {
@@ -87,7 +89,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addParticipant: wrappedAddParticipant,
     updateParticipant: supabaseData.updateParticipant,
     deleteParticipant: supabaseData.deleteParticipant,
-    addTransaction: supabaseData.addTransaction,
+    addTransaction: wrappedAddTransaction,
     addProduct: supabaseData.addProduct,
     updateProduct: supabaseData.updateProduct,
     deleteProduct: supabaseData.deleteProduct,

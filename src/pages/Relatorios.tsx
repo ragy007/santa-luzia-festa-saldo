@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,13 +18,13 @@ const Relatorios: React.FC = () => {
   const totalParticipants = participants.length;
   const totalSales = getTotalSales();
   const totalActiveBalance = getTotalActiveBalance();
-  const totalLoaded = participants.reduce((total, p) => total + (p.initial_balance || 0), 0) + 
-                    transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => total + (t.amount || 0), 0);
+  const totalLoaded = participants.reduce((total, p) => total + (Number(p.initial_balance) || 0), 0) + 
+                    transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => total + (Number(t.amount) || 0), 0);
 
   // Vendas por barraca
   const salesByBooth = booths.map(booth => ({
     name: booth.name,
-    sales: booth.total_sales || 0,
+    sales: Number(booth.total_sales) || 0,
     transactions: transactions.filter(t => t.booth === booth.name && t.type === 'debit').length
   })).sort((a, b) => b.sales - a.sales);
 
@@ -49,7 +50,7 @@ const Relatorios: React.FC = () => {
 
   // Participantes com maior saldo
   const topBalances = participants
-    .sort((a, b) => (b.balance || 0) - (a.balance || 0))
+    .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0))
     .slice(0, 10);
 
   // Vendas por hora (últimas 24h)
@@ -66,7 +67,7 @@ const Relatorios: React.FC = () => {
     });
     return {
       hour: `${hour.toString().padStart(2, '0')}:00`,
-      sales: hourTransactions.reduce((sum, t) => sum + (t.amount || 0), 0),
+      sales: hourTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
       count: hourTransactions.length
     };
   }).filter(h => h.sales > 0);
@@ -251,9 +252,9 @@ const Relatorios: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topBalances.filter(p => (p.balance || 0) > 0).length > 0 ? (
+                {topBalances.filter(p => (Number(p.balance) || 0) > 0).length > 0 ? (
                   topBalances
-                    .filter(p => (p.balance || 0) > 0)
+                    .filter(p => (Number(p.balance) || 0) > 0)
                     .map((participant, index) => (
                       <div key={participant.id} className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -265,7 +266,7 @@ const Relatorios: React.FC = () => {
                             <p className="text-sm text-gray-500">Cartão: {participant.card_number || participant.cardNumber}</p>
                           </div>
                         </div>
-                        <span className="font-bold text-purple-600">{formatCurrency(participant.balance || 0)}</span>
+                        <span className="font-bold text-purple-600">{formatCurrency(Number(participant.balance) || 0)}</span>
                       </div>
                     ))
                 ) : (

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,8 @@ const Dashboard: React.FC = () => {
   const totalParticipants = participants?.length || 0;
   const activeParticipants = participants?.filter(p => p.is_active)?.length || 0;
   const totalSales = getTotalSales();
-  const totalActiveBalance = participants?.filter(p => p.is_active)?.reduce((total, p) => total + (p.balance || 0), 0) || 0;
-  const totalLoaded = participants?.reduce((total, p) => total + (p.initial_balance || 0), 0) || 0;
+  const totalActiveBalance = participants?.filter(p => p.is_active)?.reduce((total, p) => total + (Number(p.balance) || 0), 0) || 0;
+  const totalLoaded = participants?.reduce((total, p) => total + (Number(p.initial_balance) || 0), 0) || 0;
 
   const recentTransactions = transactions
     ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -199,7 +200,7 @@ const Dashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {booths
-                  ?.sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))
+                  ?.sort((a, b) => (Number(b.total_sales) || 0) - (Number(a.total_sales) || 0))
                   ?.map((booth) => (
                     <div key={booth.id} className="flex items-center justify-between">
                       <div>
@@ -209,7 +210,7 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-lg">{formatCurrency(booth.total_sales || 0)}</p>
+                        <p className="font-bold text-lg">{formatCurrency(Number(booth.total_sales) || 0)}</p>
                       </div>
                     </div>
                   )) || (
@@ -247,7 +248,7 @@ const Dashboard: React.FC = () => {
                         <div className={`font-bold ${
                           transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          {transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          {transaction.type === 'credit' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
                         </div>
                       </div>
                     );
