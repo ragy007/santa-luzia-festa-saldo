@@ -30,30 +30,19 @@ const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Clean up auth state utility
-  const cleanupAuthState = () => {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  };
-
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && profile) {
       console.log('User logged in, redirecting...', { user: user.email, role: profile.role });
       
-      if (profile.role === 'admin') {
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/consumo', { replace: true });
-      }
+      // Force navigation based on role
+      setTimeout(() => {
+        if (profile.role === 'admin') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/consumo', { replace: true });
+        }
+      }, 100);
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -65,16 +54,6 @@ const Auth: React.FC = () => {
     console.log('Attempting sign in with:', credentials.email);
 
     try {
-      // Clean up existing state
-      cleanupAuthState();
-      
-      // Attempt global sign out first
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('No active session to sign out');
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -127,6 +106,8 @@ const Auth: React.FC = () => {
     }
 
     try {
+      console.log('Attempting signup for:', signupData.email);
+      
       const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.password,
@@ -137,6 +118,8 @@ const Auth: React.FC = () => {
         }
       });
 
+      console.log('Signup response:', { data, error });
+
       if (error) {
         console.error('Signup error:', error);
         setError(error.message || 'Erro ao criar conta');
@@ -144,6 +127,7 @@ const Auth: React.FC = () => {
       }
 
       if (data.user) {
+        console.log('User created successfully:', data.user.email);
         toast({
           title: "Conta criada!",
           description: "Sua conta foi criada com sucesso. Você já pode fazer login.",

@@ -16,6 +16,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, profile, loading } = useAuth();
 
+  console.log('ProtectedRoute check:', { user: user?.email, profile, loading });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -27,9 +29,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
+    console.log('No user, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
+
+  if (!profile) {
+    console.log('No profile, redirecting to auth');
+    return <Navigate to="/auth" replace />;
+  }
+
+  console.log('User has profile, checking permissions:', { role: profile.role, requireAdmin, allowedRoles });
 
   if (requireAdmin && profile.role !== 'admin') {
     return (
@@ -55,6 +65,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  console.log('Access granted, rendering children');
   return <>{children}</>;
 };
 

@@ -30,22 +30,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Clean up auth state utility
-const cleanupAuthState = () => {
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -68,33 +52,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          // Defer profile loading to prevent deadlocks
-          setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
+          console.log('Loading profile for user:', session.user.id);
+          // Load profile for authenticated user
+          try {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-              if (error) {
-                console.error('Error loading profile:', error);
+            console.log('Profile query result:', { profileData, error });
+
+            if (error) {
+              console.error('Error loading profile:', error);
+              
+              // If profile doesn't exist, create a default one
+              if (error.code === 'PGRST116') {
+                console.log('Profile not found, creating default profile...');
+                const { data: newProfile, error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    full_name: session.user.user_metadata?.full_name || session.user.email || 'Usuário',
+                    role: 'operator'
+                  })
+                  .select()
+                  .single();
+
+                if (insertError) {
+                  console.error('Error creating profile:', insertError);
+                  setProfile(null);
+                } else {
+                  console.log('Profile created successfully:', newProfile);
+                  const mappedProfile: Profile = {
+                    id: newProfile.id,
+                    full_name: newProfile.full_name,
+                    role: newProfile.role as 'admin' | 'operator',
+                    booth_id: newProfile.booth_id
+                  };
+                  setProfile(mappedProfile);
+                }
+              } else {
                 setProfile(null);
-              } else if (profileData) {
-                const mappedProfile: Profile = {
-                  id: profileData.id,
-                  full_name: profileData.full_name,
-                  role: profileData.role as 'admin' | 'operator',
-                  booth_id: profileData.booth_id
-                };
-                setProfile(mappedProfile);
               }
-            } catch (error) {
-              console.error('Error fetching profile:', error);
-              setProfile(null);
+            } else if (profileData) {
+              console.log('Profile loaded successfully:', profileData);
+              const mappedProfile: Profile = {
+                id: profileData.id,
+                full_name: profileData.full_name,
+                role: profileData.role as 'admin' | 'operator',
+                booth_id: profileData.booth_id
+              };
+              setProfile(mappedProfile);
             }
-          }, 0);
+          } catch (error) {
+            console.error('Error fetching profile:', error);
+            setProfile(null);
+          }
         } else {
+          console.log('No user session, clearing profile');
           setProfile(null);
         }
         
@@ -116,37 +132,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        console.log('Current session:', session?.user?.email || 'no session');
+        console.log('Initial session check:', session?.user?.email || 'no session');
         
-        if (isMounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            // Load profile
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-
-              if (error) {
-                console.error('Error loading profile:', error);
-              } else if (profileData) {
-                const mappedProfile: Profile = {
-                  id: profileData.id,
-                  full_name: profileData.full_name,
-                  role: profileData.role as 'admin' | 'operator',
-                  booth_id: profileData.booth_id
-                };
-                setProfile(mappedProfile);
-              }
-            } catch (error) {
-              console.error('Error fetching profile:', error);
-            }
-          }
-          
+        if (isMounted && !session) {
+          // No session found, stop loading
           setLoading(false);
         }
       } catch (error) {
@@ -167,23 +156,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Clean up auth state first
-      cleanupAuthState();
+      console.log('Signing out...');
       
       // Attempt global sign out
-      try {
-        const { error } = await supabase.auth.signOut({ scope: 'global' });
-        if (error) console.error('Sign out error:', error);
-      } catch (error) {
-        console.error('Error during sign out:', error);
-      }
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) console.error('Sign out error:', error);
       
       setUser(null);
       setProfile(null);
       setSession(null);
       
-      // Force page reload for clean state
-      window.location.href = '/auth';
+      console.log('Signed out successfully');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
