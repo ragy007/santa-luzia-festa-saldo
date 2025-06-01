@@ -30,8 +30,8 @@ export const useAuth = () => {
   return context;
 };
 
-// Credenciais válidas do sistema
-const validCredentials = [
+// Credenciais de fallback (caso a tabela user_accounts esteja vazia)
+const fallbackCredentials = [
   { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
   { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
   { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
@@ -43,6 +43,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Função para verificar credenciais no banco e fallback
+  const validateUser = async (email: string): Promise<Profile | null> => {
+    try {
+      // Primeiro, tentar buscar na tabela user_accounts
+      const { data: userAccount, error } = await supabase
+        .from('user_accounts')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!error && userAccount) {
+        return {
+          id: userAccount.id,
+          full_name: userAccount.name,
+          role: userAccount.role as 'admin' | 'operator',
+          booth_id: userAccount.booth_id
+        };
+      }
+
+      // Fallback para credenciais hardcoded
+      const fallbackUser = fallbackCredentials.find(cred => cred.email === email);
+      if (fallbackUser) {
+        return {
+          id: email, // Usar email como ID para fallback
+          full_name: fallbackUser.name,
+          role: fallbackUser.role
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Erro ao validar usuário:', error);
+      
+      // Em caso de erro, usar fallback
+      const fallbackUser = fallbackCredentials.find(cred => cred.email === email);
+      if (fallbackUser) {
+        return {
+          id: email,
+          full_name: fallbackUser.name,
+          role: fallbackUser.role
+        };
+      }
+      return null;
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -60,17 +107,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user && event !== 'SIGNED_OUT') {
-          // Verificar se é um usuário válido do sistema
-          const validUser = validCredentials.find(cred => cred.email === session.user.email);
-          if (validUser) {
-            const defaultProfile: Profile = {
-              id: session.user.id,
-              full_name: validUser.name,
-              role: validUser.role
-            };
-            setProfile(defaultProfile);
+          // Validar usuário usando banco + fallback
+          const userProfile = await validateUser(session.user.email || '');
+          if (userProfile) {
+            setProfile(userProfile);
+            console.log('User validated:', userProfile.full_name, userProfile.role);
           } else {
-            // Usuário não autorizado
             console.warn('Usuário não autorizado:', session.user.email);
             setProfile(null);
           }
@@ -103,14 +145,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            const validUser = validCredentials.find(cred => cred.email === session.user.email);
-            if (validUser) {
-              const defaultProfile: Profile = {
-                id: session.user.id,
-                full_name: validUser.name,
-                role: validUser.role
-              };
-              setProfile(defaultProfile);
+            const userProfile = await validateUser(session.user.email || '');
+            if (userProfile) {
+              setProfile(userProfile);
             }
           }
           

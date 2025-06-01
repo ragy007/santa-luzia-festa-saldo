@@ -5,8 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { AppProvider } from "./contexts/AppContext";
-import { SettingsProvider } from "./contexts/SettingsContext";
+import { ModernAppProvider } from "./contexts/ModernAppContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Cadastro from "./pages/Cadastro";
@@ -27,84 +26,82 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <SettingsProvider>
-        <AuthProvider>
-          <AppProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/landing" element={<LandingPage />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={<Navigate to="/auth" replace />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/cadastro"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Cadastro />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/recarga"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Recarga />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consumo"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin', 'operator']}>
-                      <Consumo />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/historico"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Historico />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/relatorios"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Relatorios />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/encerramento"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Encerramento />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AppProvider>
-        </AuthProvider>
-      </SettingsProvider>
+      <AuthProvider>
+        <ModernAppProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cadastro"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Cadastro />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recarga"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Recarga />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/consumo"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                    <Consumo />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/historico"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Historico />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/relatorios"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Relatorios />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/encerramento"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Encerramento />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ModernAppProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
