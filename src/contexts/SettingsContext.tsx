@@ -69,8 +69,8 @@ const defaultBooths: Booth[] = [
   {
     id: 'booth-default',
     name: 'Barraca Principal',
-    description: 'Barraca principal da festa',
     isActive: true,
+    totalSales: 0,
   }
 ];
 

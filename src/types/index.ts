@@ -8,7 +8,7 @@ export interface Participant {
   initialBalance: number;
   createdAt: string;
   isActive: boolean;
-  phone?: string; // Novo campo
+  phone?: string;
 }
 
 export interface Transaction {
@@ -28,7 +28,7 @@ export interface Product {
   price: number;
   booth: string;
   isActive: boolean;
-  isFree?: boolean; // Add isFree property
+  isFree?: boolean;
 }
 
 export interface ClosingOption {
@@ -46,6 +46,7 @@ export interface Booth {
   name: string;
   isActive: boolean;
   totalSales: number;
+  description?: string; // Adicionando description como opcional
 }
 
 export interface AppState {
