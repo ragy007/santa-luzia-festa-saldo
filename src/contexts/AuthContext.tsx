@@ -30,6 +30,14 @@ export const useAuth = () => {
   return context;
 };
 
+// Credenciais válidas do sistema
+const validCredentials = [
+  { email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
+  { email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
+  { email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
+  { email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
+];
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -37,73 +45,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
-    // Configurar listener primeiro
+    console.log('Setting up auth state listener...');
+    
+    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        if (!isMounted) return;
         
-        console.log('Auth state changed:', event);
+        console.log('Auth state changed:', event, session?.user?.email || 'no user');
         
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
-          // Simular profile baseado no email para fallback
-          const email = session.user.email || '';
-          let mockProfile: Profile;
-
-          if (email === 'admin@festa.com') {
-            mockProfile = {
+        if (session?.user && event !== 'SIGNED_OUT') {
+          // Verificar se é um usuário válido do sistema
+          const validUser = validCredentials.find(cred => cred.email === session.user.email);
+          if (validUser) {
+            const defaultProfile: Profile = {
               id: session.user.id,
-              full_name: 'Administrador',
-              role: 'admin'
+              full_name: validUser.name,
+              role: validUser.role
             };
-          } else if (email.includes('operador')) {
-            const operatorNumber = email.includes('operador2') ? '2' : 
-                                 email.includes('operador3') ? '3' : '1';
-            mockProfile = {
-              id: session.user.id,
-              full_name: `Operador ${operatorNumber}`,
-              role: 'operator'
-            };
+            setProfile(defaultProfile);
           } else {
-            mockProfile = {
-              id: session.user.id,
-              full_name: session.user.email || 'Usuário',
-              role: 'operator'
-            };
+            // Usuário não autorizado
+            console.warn('Usuário não autorizado:', session.user.email);
+            setProfile(null);
           }
-
-          setProfile(mockProfile);
         } else {
           setProfile(null);
         }
         
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     );
 
-    // Verificar sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      if (!session) {
-        setLoading(false);
+    // Verificar sessão atual
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+          if (isMounted) {
+            setLoading(false);
+          }
+          return;
+        }
+        
+        console.log('Current session:', session?.user?.email || 'no session');
+        
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            const validUser = validCredentials.find(cred => cred.email === session.user.email);
+            if (validUser) {
+              const defaultProfile: Profile = {
+                id: session.user.id,
+                full_name: validUser.name,
+                role: validUser.role
+              };
+              setProfile(defaultProfile);
+            }
+          }
+          
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      // Se há sessão, o onAuthStateChange vai tratar
-    });
+    };
+
+    checkSession();
 
     return () => {
-      mounted = false;
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
       setProfile(null);
       setSession(null);
