@@ -2,70 +2,63 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useFestivalSettings } from '@/hooks/useFestivalSettings';
-import { useUserAccounts } from '@/hooks/useUserAccounts';
-import { useFestivalBooths } from '@/hooks/useFestivalBooths';
-import { useFestivalProducts } from '@/hooks/useFestivalProducts';
-import { useParticipants } from '@/hooks/useParticipants';
-import { useTransactions } from '@/hooks/useTransactions';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { Database, Users, ShoppingBag, Store, UserCheck, Receipt } from 'lucide-react';
 import DataMigrationPanel from './DataMigrationPanel';
+import MigrationStatus from './MigrationStatus';
 
 const SettingsDatabase: React.FC = () => {
-  const { settings, loading: settingsLoading } = useFestivalSettings();
-  const { users, loading: usersLoading } = useUserAccounts();
-  const { booths, loading: boothsLoading } = useFestivalBooths();
-  const { products, loading: productsLoading } = useFestivalProducts();
-  const { participants, loading: participantsLoading } = useParticipants();
-  const { transactions, loading: transactionsLoading } = useTransactions();
+  const { settings, users, booths, products, participants, transactions, loading } = useSupabaseData();
 
   const stats = [
     {
       title: 'Configurações',
       count: settings ? 1 : 0,
       icon: Database,
-      loading: settingsLoading,
+      loading,
       color: 'bg-blue-500'
     },
     {
       title: 'Usuários',
       count: users.length,
       icon: Users,
-      loading: usersLoading,
+      loading,
       color: 'bg-green-500'
     },
     {
       title: 'Barracas',
       count: booths.length,
       icon: Store,
-      loading: boothsLoading,
+      loading,
       color: 'bg-purple-500'
     },
     {
       title: 'Produtos',
       count: products.length,
       icon: ShoppingBag,
-      loading: productsLoading,
+      loading,
       color: 'bg-orange-500'
     },
     {
       title: 'Participantes',
       count: participants.length,
       icon: UserCheck,
-      loading: participantsLoading,
+      loading,
       color: 'bg-indigo-500'
     },
     {
       title: 'Transações',
       count: transactions.length,
       icon: Receipt,
-      loading: transactionsLoading,
+      loading,
       color: 'bg-red-500'
     }
   ];
 
   return (
     <div className="space-y-6">
+      <MigrationStatus />
+      
       <DataMigrationPanel />
       
       <Card>

@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { generateUUID, isValidUUID, createIdMapping } from '@/utils/idGeneration';
 
 export const useDataMigration = () => {
   const migrateFromLocalStorage = async () => {
@@ -45,7 +46,13 @@ export const useDataMigration = () => {
         }
       }
 
-      // Migrar configurações manualmente
+      // Criar mapeamentos de IDs para conversão
+      const userIdMapping = usersData ? createIdMapping(usersData) : new Map();
+      const boothIdMapping = boothsData ? createIdMapping(boothsData) : new Map();
+      const participantIdMapping = participantsData ? createIdMapping(participantsData) : new Map();
+      const productIdMapping = productsData ? createIdMapping(productsData) : new Map();
+
+      // Migrar configurações
       if (settingsData) {
         const { error: settingsError } = await supabase
           .from('festival_settings')
@@ -72,13 +79,15 @@ export const useDataMigration = () => {
         if (settingsError) throw settingsError;
       }
 
-      // Migrar usuários
+      // Migrar usuários com IDs válidos
       if (usersData && Array.isArray(usersData)) {
         for (const user of usersData) {
+          const newId = userIdMapping.get(user.id) || (isValidUUID(user.id) ? user.id : generateUUID());
+          
           const { error } = await supabase
             .from('user_accounts')
             .upsert({
-              id: user.id,
+              id: newId,
               email: user.email,
               password: user.password,
               name: user.name,
@@ -88,21 +97,22 @@ export const useDataMigration = () => {
               created_at: user.createdAt || new Date().toISOString(),
             });
 
-          if (error && error.code !== '23505') { // Ignorar erro de duplicação
+          if (error && error.code !== '23505') {
             console.error('Erro ao migrar usuário:', error);
           }
         }
       }
 
-      // Migrar barracas
+      // Migrar barracas com IDs válidos
       if (boothsData && Array.isArray(boothsData)) {
         for (const booth of boothsData) {
+          const newId = boothIdMapping.get(booth.id) || (isValidUUID(booth.id) ? booth.id : generateUUID());
+          
           const { error } = await supabase
             .from('festival_booths')
             .upsert({
-              id: booth.id,
+              id: newId,
               name: booth.name,
-              description: booth.description,
               is_active: booth.isActive ?? true,
               total_sales: booth.totalSales || 0,
             });
@@ -113,16 +123,18 @@ export const useDataMigration = () => {
         }
       }
 
-      // Migrar participantes
+      // Migrar participantes com IDs válidos
       if (participantsData && Array.isArray(participantsData)) {
         for (const participant of participantsData) {
+          const newId = participantIdMapping.get(participant.id) || (isValidUUID(participant.id) ? participant.id : generateUUID());
+          
           const { error } = await supabase
             .from('participants')
             .upsert({
-              id: participant.id,
+              id: newId,
               name: participant.name,
               card_number: participant.cardNumber,
-              qr_code: participant.qrCode,
+              qr_code: participant.qrCode || participant.cardNumber,
               balance: participant.balance || 0,
               initial_balance: participant.initialBalance || 0,
               phone: participant.phone,
@@ -136,13 +148,15 @@ export const useDataMigration = () => {
         }
       }
 
-      // Migrar produtos
+      // Migrar produtos com IDs válidos
       if (productsData && Array.isArray(productsData)) {
         for (const product of productsData) {
+          const newId = productIdMapping.get(product.id) || (isValidUUID(product.id) ? product.id : generateUUID());
+          
           const { error } = await supabase
             .from('festival_products')
             .upsert({
-              id: product.id,
+              id: newId,
               name: product.name,
               price: product.price,
               booth: product.booth,
@@ -156,14 +170,23 @@ export const useDataMigration = () => {
         }
       }
 
-      // Migrar transações
+      // Migrar transações com referências atualizadas
       if (transactionsData && Array.isArray(transactionsData)) {
         for (const transaction of transactionsData) {
+          const newTransactionId = generateUUID();
+          const newParticipantId = participantIdMapping.get(transaction.participantId) || 
+                                  (isValidUUID(transaction.participantId) ? transaction.participantId : null);
+          
+          if (!newParticipantId) {
+            console.warn(`Participante não encontrado para transação: ${transaction.id}`);
+            continue;
+          }
+          
           const { error } = await supabase
             .from('transactions')
             .upsert({
-              id: transaction.id,
-              participant_id: transaction.participantId,
+              id: newTransactionId,
+              participant_id: newParticipantId,
               type: transaction.type,
               amount: transaction.amount,
               description: transaction.description,
@@ -183,7 +206,7 @@ export const useDataMigration = () => {
         description: "Dados migrados com sucesso para o banco de dados",
       });
 
-      // Opcional: fazer backup do localStorage antes de limpar
+      // Fazer backup do localStorage antes de limpar
       const backupData = {
         settings: storedSettings,
         appState: storedAppState,
