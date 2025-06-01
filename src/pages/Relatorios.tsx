@@ -19,7 +19,7 @@ const Relatorios: React.FC = () => {
   const totalSales = getTotalSales();
   const totalActiveBalance = getTotalActiveBalance();
   const totalLoaded = participants.reduce((total, p) => {
-    const initialBalance = Number(p.initial_balance) || 0;
+    const initialBalance = Number(p.initialBalance) || 0;
     return total + initialBalance;
   }, 0) + 
   transactions.filter(t => t.type === 'credit' && t.description !== 'Carga inicial').reduce((total, t) => {
@@ -30,7 +30,7 @@ const Relatorios: React.FC = () => {
   // Vendas por barraca
   const salesByBooth = booths.map(booth => ({
     name: booth.name,
-    sales: Number(booth.total_sales) || 0,
+    sales: Number(booth.totalSales) || 0,
     transactions: transactions.filter(t => t.booth === booth.name && t.type === 'debit').length
   })).sort((a, b) => b.sales - a.sales);
 
@@ -63,12 +63,12 @@ const Relatorios: React.FC = () => {
   const now = new Date();
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recentTransactions = transactions.filter(t => 
-    t.type === 'debit' && new Date(t.created_at || t.timestamp).getTime() >= last24h.getTime()
+    t.type === 'debit' && new Date(t.timestamp).getTime() >= last24h.getTime()
   );
 
   const salesByHour = Array.from({ length: 24 }, (_, hour) => {
     const hourTransactions = recentTransactions.filter(t => {
-      const transactionHour = new Date(t.created_at || t.timestamp).getHours();
+      const transactionHour = new Date(t.timestamp).getHours();
       return transactionHour === hour;
     });
     return {
@@ -269,7 +269,7 @@ const Relatorios: React.FC = () => {
                           </span>
                           <div>
                             <p className="font-medium text-gray-900">{participant.name}</p>
-                            <p className="text-sm text-gray-500">Cartão: {participant.card_number || participant.cardNumber}</p>
+                            <p className="text-sm text-gray-500">Cartão: {participant.cardNumber}</p>
                           </div>
                         </div>
                         <span className="font-bold text-purple-600">{formatCurrency(Number(participant.balance) || 0)}</span>

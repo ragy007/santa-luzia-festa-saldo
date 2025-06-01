@@ -48,12 +48,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const supabaseData = useSupabaseData();
 
   const getParticipantByCard = (cardNumber: string) => {
-    return supabaseData.participants?.find(p => p.card_number === cardNumber);
+    return supabaseData.participants?.find(p => p.cardNumber === cardNumber);
   };
 
   const getTotalActiveBalance = () => {
     return supabaseData.participants
-      ?.filter(p => p.is_active)
+      ?.filter(p => p.isActive)
       ?.reduce((total, p) => total + (Number(p.balance) || 0), 0) || 0;
   };
 
