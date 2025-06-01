@@ -26,9 +26,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <ModernAppProvider>
-          <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <ModernAppProvider>
             <Routes>
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
@@ -99,9 +99,9 @@ const App = () => (
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </ModernAppProvider>
-      </AuthProvider>
+          </ModernAppProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
