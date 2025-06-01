@@ -7,6 +7,14 @@ interface AppContextType {
   transactions: any[];
   products: any[];
   booths: any[];
+  state: {
+    participants: any[];
+    transactions: any[];
+    products: any[];
+    booths: any[];
+    closingOptions: any[];
+    festivalActive: boolean;
+  };
   addParticipant: (participant: any) => Promise<void>;
   updateParticipant: (id: string, participant: any) => Promise<void>;
   deleteParticipant: (id: string) => Promise<void>;
@@ -20,6 +28,9 @@ interface AppContextType {
   getParticipantByCard: (cardNumber: string) => any;
   getTotalSales: () => number;
   getTotalActiveBalance: () => number;
+  clearAllData: () => void;
+  addClosingOption: (option: any) => void;
+  closingOptions: any[];
   loading: boolean;
 }
 
@@ -46,12 +57,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ?.reduce((total, p) => total + (p.balance || 0), 0) || 0;
   };
 
+  const clearAllData = () => {
+    // Implementação para limpar dados - por enquanto vazio
+    console.log('Clear all data not implemented yet');
+  };
+
+  const addClosingOption = (option: any) => {
+    // Implementação para adicionar opção de fechamento - por enquanto vazio
+    console.log('Add closing option not implemented yet', option);
+  };
+
+  const wrappedAddParticipant = async (participant: any): Promise<void> => {
+    await supabaseData.addParticipant(participant);
+  };
+
   const value = {
     participants: supabaseData.participants || [],
     transactions: supabaseData.transactions || [],
     products: supabaseData.products || [],
     booths: supabaseData.booths || [],
-    addParticipant: supabaseData.addParticipant,
+    state: {
+      participants: supabaseData.participants || [],
+      transactions: supabaseData.transactions || [],
+      products: supabaseData.products || [],
+      booths: supabaseData.booths || [],
+      closingOptions: [],
+      festivalActive: true,
+    },
+    addParticipant: wrappedAddParticipant,
     updateParticipant: supabaseData.updateParticipant,
     deleteParticipant: supabaseData.deleteParticipant,
     addTransaction: supabaseData.addTransaction,
@@ -64,6 +97,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     getParticipantByCard,
     getTotalSales: supabaseData.getTotalSales,
     getTotalActiveBalance,
+    clearAllData,
+    addClosingOption,
+    closingOptions: [],
     loading: supabaseData.loading,
   };
 
