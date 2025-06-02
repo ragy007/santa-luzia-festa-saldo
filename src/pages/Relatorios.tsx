@@ -2,7 +2,7 @@
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/LocalAppContext';
 import { BarChart3, TrendingUp, Users, DollarSign, Calendar, PieChart } from 'lucide-react';
 
 const Relatorios: React.FC = () => {
