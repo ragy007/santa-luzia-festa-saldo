@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useAuth } from '@/contexts/LocalAuthContext';
+import { useApp } from '@/contexts/LocalAppContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Clock } from 'lucide-react';
 import {
@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Header: React.FC = () => {
-  const { user, profile, signOut } = useAuth();
-  const { settings } = useSettings();
+  const { user, signOut } = useAuth();
+  const { settings } = useApp();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
@@ -44,7 +44,7 @@ const Header: React.FC = () => {
   return (
     <div className="flex items-center justify-between p-4 bg-white border-b">
       <div className="flex items-center space-x-4">
-        {settings.logoUrl && (
+        {settings?.logoUrl && (
           <img 
             src={settings.logoUrl} 
             alt="Logo" 
@@ -53,20 +53,20 @@ const Header: React.FC = () => {
         )}
         <div>
           <h1 className="text-xl font-bold text-gray-900">
-            🎉 {settings.name}
+            🎉 {settings?.name || 'Festa Comunitária'}
           </h1>
           <p className="text-sm text-gray-600">
-            {settings.location} • {new Date(settings.date).toLocaleDateString('pt-BR')}
-            {settings.phone && ` • ${settings.phone}`}
+            {settings?.location || 'Centro Social'} • {new Date(settings?.date || new Date()).toLocaleDateString('pt-BR')}
+            {settings?.phone && ` • ${settings.phone}`}
           </p>
         </div>
-        {profile && (
+        {user && (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            profile.role === 'admin' 
+            user.role === 'admin' 
               ? 'bg-purple-100 text-purple-800' 
               : 'bg-blue-100 text-blue-800'
           }`}>
-            {profile.role === 'admin' ? 'Administrador' : 'Operador'}
+            {user.role === 'admin' ? 'Administrador' : 'Operador'}
           </span>
         )}
       </div>
@@ -81,7 +81,7 @@ const Header: React.FC = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2">
               <User className="h-4 w-4" />
-              <span>{profile?.full_name || user?.email || 'Usuário'}</span>
+              <span>{user?.name || user?.email || 'Usuário'}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
