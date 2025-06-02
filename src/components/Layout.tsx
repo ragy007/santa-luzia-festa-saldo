@@ -3,8 +3,8 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSettings } from '../contexts/SettingsContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useApp } from '../contexts/LocalAppContext';
+import { useAuth } from '@/contexts/LocalAuthContext';
 import Header from './Header';
 import { 
   Home, 
@@ -52,8 +52,8 @@ const iconMap = {
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { settings } = useSettings();
-  const { signOut, profile } = useAuth();
+  const { settings } = useApp();
+  const { signOut, user } = useAuth();
 
   const allMenuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
@@ -68,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
 
   // Filtrar menu baseado no role do usuário
   const menuItems = allMenuItems.filter(item => {
-    if (profile?.role === 'admin') return true;
+    if (user?.role === 'admin') return true;
     return !item.adminOnly;
   });
 
@@ -83,18 +83,18 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
 
   const handleSignOut = async () => {
     if (confirm('Tem certeza que deseja sair do sistema?')) {
-      await signOut();
+      signOut();
       navigate('/auth');
     }
   };
 
   const getPrimaryIcon = () => {
-    const iconName = settings.primaryIcon || 'Heart';
+    const iconName = settings?.primaryIcon || 'Heart';
     return iconMap[iconName as keyof typeof iconMap] || Heart;
   };
 
   const getSecondaryIcon = () => {
-    const iconName = settings.secondaryIcon || 'Church';
+    const iconName = settings?.secondaryIcon || 'Church';
     return iconMap[iconName as keyof typeof iconMap] || Church;
   };
 
