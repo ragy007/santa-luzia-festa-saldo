@@ -1,79 +1,55 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SettingsGeneral from '../components/SettingsGeneral';
 import SettingsTheme from '../components/SettingsTheme';
 import SettingsBooths from '../components/SettingsBooths';
-import SettingsUsers from '../components/SettingsUsers';
 import SettingsIcons from '../components/SettingsIcons';
-import SettingsDatabase from '../components/SettingsDatabase';
-import { Settings as SettingsIcon, Palette, Store, Users, Database, Zap } from 'lucide-react';
+import LocalSettingsUsers from '../components/LocalSettingsUsers';
 
 const Settings: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('general');
+
   return (
-    <Layout title="Configurações">
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center">
-            <SettingsIcon className="h-6 w-6 mr-2" />
-            Configurações
+    <Layout title="Configurações do Sistema">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            ⚙️ Configurações
           </h1>
-          <p className="text-gray-600 mt-1">
-            Configure sua festa comunitária e gerencie o sistema
+          <p className="text-gray-600">
+            Gerencie as configurações do sistema de festa
           </p>
         </div>
 
-        <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="general" className="flex items-center">
-              <SettingsIcon className="h-4 w-4 mr-2" />
-              Geral
-            </TabsTrigger>
-            <TabsTrigger value="theme" className="flex items-center">
-              <Palette className="h-4 w-4 mr-2" />
-              Tema
-            </TabsTrigger>
-            <TabsTrigger value="icons" className="flex items-center">
-              <Zap className="h-4 w-4 mr-2" />
-              Ícones
-            </TabsTrigger>
-            <TabsTrigger value="booths" className="flex items-center">
-              <Store className="h-4 w-4 mr-2" />
-              Barracas
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Usuários
-            </TabsTrigger>
-            <TabsTrigger value="database" className="flex items-center">
-              <Database className="h-4 w-4 mr-2" />
-              Banco
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="general">Geral</TabsTrigger>
+            <TabsTrigger value="theme">Tema</TabsTrigger>
+            <TabsTrigger value="booths">Barracas</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="icons">Ícones</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general">
+          <TabsContent value="general" className="mt-6">
             <SettingsGeneral />
           </TabsContent>
 
-          <TabsContent value="theme">
+          <TabsContent value="theme" className="mt-6">
             <SettingsTheme />
           </TabsContent>
 
-          <TabsContent value="icons">
-            <SettingsIcons />
-          </TabsContent>
-
-          <TabsContent value="booths">
+          <TabsContent value="booths" className="mt-6">
             <SettingsBooths />
           </TabsContent>
 
-          <TabsContent value="users">
-            <SettingsUsers />
+          <TabsContent value="users" className="mt-6">
+            <LocalSettingsUsers />
           </TabsContent>
 
-          <TabsContent value="database">
-            <SettingsDatabase />
+          <TabsContent value="icons" className="mt-6">
+            <SettingsIcons />
           </TabsContent>
         </Tabs>
       </div>
