@@ -102,6 +102,14 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/sincronizacao"
+                  element={
+                    <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                      <Sincronizacao />
+                    </LocalProtectedRoute>
+                  }
+                />
+                <Route
                   path="/guia"
                   element={
                     <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
