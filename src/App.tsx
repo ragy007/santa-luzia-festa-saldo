@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Settings from "./pages/Settings";
 import LocalAuth from "./pages/LocalAuth";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
+import GuiaUso from "./pages/GuiaUso";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +96,14 @@ const App = () => (
                   element={
                     <LocalProtectedRoute requireAdmin>
                       <Settings />
+                    </LocalProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/guia"
+                  element={
+                    <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                      <GuiaUso />
                     </LocalProtectedRoute>
                   }
                 />
