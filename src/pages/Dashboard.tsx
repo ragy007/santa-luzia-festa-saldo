@@ -1,13 +1,12 @@
+
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useApp } from '../contexts/AppContext';
-import { useSettings } from '../contexts/SettingsContext';
+import { useApp } from '../contexts/LocalAppContext';
 import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Power, AlertTriangle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
-  const { settings, isFestivalActive } = useSettings();
+  const { participants, transactions, getTotalSales, getTotalActiveBalance, booths, settings, isFestivalActive } = useApp();
 
   const totalParticipants = participants.length;
   const activeParticipants = participants.filter(p => p.isActive).length;
@@ -40,7 +39,7 @@ const Dashboard: React.FC = () => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toTimeString().slice(0, 5);
 
-    if (!settings.isActive) {
+    if (!settings?.isActive) {
       return {
         status: 'DESATIVADA',
         color: 'text-red-600',
@@ -103,12 +102,12 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="text-center py-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {settings.title || 'Festa Comunitária 2024'}
+            {settings?.title || 'Festa Comunitária 2024'}
           </h1>
           <p className="text-lg text-gray-600">
-            {settings.subtitle || 'Centro Social da Paróquia Santa Luzia'}
+            {settings?.subtitle || 'Centro Social da Paróquia Santa Luzia'}
           </p>
-          {settings.religiousMessage && (
+          {settings?.religiousMessage && (
             <p className="text-sm text-blue-600 mt-2">
               {settings.religiousMessage}
             </p>
