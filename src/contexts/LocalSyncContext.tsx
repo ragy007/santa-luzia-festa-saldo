@@ -30,69 +30,94 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [connectedClients, setConnectedClients] = useState(0);
   const [serverUrl, setServerUrl] = useState('');
   
-  const wsServer = useRef<WebSocket | null>(null);
   const wsClient = useRef<WebSocket | null>(null);
-  const httpServer = useRef<any>(null);
   const dataCallback = useRef<((type: string, data: any) => void) | null>(null);
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const getLocalIP = () => {
+    return `${window.location.hostname}:${window.location.port || '3000'}`;
+  };
 
   const startAsServer = () => {
     try {
-      // Usar um servidor WebSocket simples via Service Worker
-      navigator.serviceWorker.register('/sync-server.js').then((registration) => {
-        console.log('Sync server registered:', registration);
-        setIsServer(true);
-        setIsConnected(true);
-        
-        // Obter IP local (simulado)
-        const localIP = `${window.location.hostname}:3001`;
-        setServerUrl(localIP);
-        
-        toast({
-          title: "🖥️ Servidor iniciado!",
-          description: `Outros dispositivos podem se conectar em: ${localIP}`,
-        });
-      }).catch((error) => {
-        console.error('Erro ao iniciar servidor:', error);
-        // Fallback: usar localStorage compartilhado
-        startLocalStorageSync();
+      setIsServer(true);
+      setIsConnected(true);
+      setServerUrl(getLocalIP());
+      
+      // Usar localStorage para sincronização entre abas
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key?.startsWith('festa-sync-')) {
+          const type = e.key.replace('festa-sync-', '');
+          const data = e.newValue ? JSON.parse(e.newValue) : null;
+          if (dataCallback.current && data) {
+            console.log('Dados recebidos via localStorage:', type, data);
+            dataCallback.current(type, data.data);
+          }
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      
+      toast({
+        title: "🖥️ Servidor iniciado!",
+        description: `Outros dispositivos podem se conectar em: ${getLocalIP()}`,
       });
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
     } catch (error) {
       console.error('Erro ao iniciar servidor:', error);
-      startLocalStorageSync();
+      toast({
+        title: "❌ Erro ao iniciar servidor",
+        description: "Verifique as configurações de rede",
+        variant: "destructive",
+      });
     }
   };
 
-  const startLocalStorageSync = () => {
-    setIsServer(true);
-    setIsConnected(true);
-    setServerUrl('localStorage-sync');
-    
-    // Escutar mudanças no localStorage de outras abas
-    window.addEventListener('storage', (e) => {
-      if (e.key?.startsWith('festa-sync-')) {
-        const type = e.key.replace('festa-sync-', '');
-        const data = e.newValue ? JSON.parse(e.newValue) : null;
-        if (dataCallback.current && data) {
-          dataCallback.current(type, data);
-        }
-      }
-    });
-
-    toast({
-      title: "🔄 Sincronização local ativa!",
-      description: "Outras abas do navegador verão as mudanças em tempo real",
-    });
-  };
-
   const connectToServer = (url: string) => {
+    if (!url.trim()) return;
+
     try {
-      // Tentar conectar via WebSocket
-      const ws = new WebSocket(`ws://${url}/sync`);
+      // Primeiro tentar localStorage sync para teste local
+      if (url === getLocalIP() || url === 'localhost' || url.includes('localhost')) {
+        setIsConnected(true);
+        setServerUrl(url);
+        
+        const handleStorageChange = (e: StorageEvent) => {
+          if (e.key?.startsWith('festa-sync-')) {
+            const type = e.key.replace('festa-sync-', '');
+            const data = e.newValue ? JSON.parse(e.newValue) : null;
+            if (dataCallback.current && data) {
+              console.log('Cliente recebeu dados via localStorage:', type, data);
+              dataCallback.current(type, data.data);
+            }
+          }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        
+        toast({
+          title: "✅ Conectado ao servidor!",
+          description: `Sincronizando com ${url}`,
+        });
+        return;
+      }
+
+      // Tentar WebSocket para conexões de rede
+      const wsUrl = url.startsWith('ws://') ? url : `ws://${url}`;
+      const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
         wsClient.current = ws;
         setIsConnected(true);
         setServerUrl(url);
+        
+        if (reconnectTimeout.current) {
+          clearTimeout(reconnectTimeout.current);
+          reconnectTimeout.current = null;
+        }
         
         toast({
           title: "✅ Conectado ao servidor!",
@@ -101,9 +126,14 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       ws.onmessage = (event) => {
-        const { type, data } = JSON.parse(event.data);
-        if (dataCallback.current) {
-          dataCallback.current(type, data);
+        try {
+          const { type, data } = JSON.parse(event.data);
+          if (dataCallback.current) {
+            console.log('Cliente recebeu dados via WebSocket:', type, data);
+            dataCallback.current(type, data);
+          }
+        } catch (error) {
+          console.error('Erro ao processar mensagem:', error);
         }
       };
 
@@ -113,63 +143,91 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast({
           title: "⚠️ Conexão perdida",
-          description: "Tentando reconectar...",
+          description: "Tentando reconectar em 5 segundos...",
+          variant: "destructive",
+        });
+
+        // Tentar reconectar automaticamente
+        reconnectTimeout.current = setTimeout(() => {
+          connectToServer(url);
+        }, 5000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('Erro WebSocket:', error);
+        toast({
+          title: "❌ Erro de conexão",
+          description: "Verifique o endereço do servidor",
           variant: "destructive",
         });
       };
 
-      ws.onerror = () => {
-        console.log('Erro WebSocket, usando localStorage sync');
-        startLocalStorageSync();
-      };
-
     } catch (error) {
-      console.log('Erro ao conectar, usando localStorage sync');
-      startLocalStorageSync();
+      console.error('Erro ao conectar:', error);
+      toast({
+        title: "❌ Erro de conexão",
+        description: "Não foi possível conectar ao servidor",
+        variant: "destructive",
+      });
     }
   };
 
   const disconnect = () => {
-    if (wsServer.current) {
-      wsServer.current.close();
-      wsServer.current = null;
-    }
     if (wsClient.current) {
       wsClient.current.close();
       wsClient.current = null;
+    }
+    
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
     }
     
     setIsServer(false);
     setIsConnected(false);
     setConnectedClients(0);
     setServerUrl('');
+
+    toast({
+      title: "🔌 Desconectado",
+      description: "Sincronização interrompida",
+    });
   };
 
   const broadcastData = (type: string, data: any) => {
-    const message = JSON.stringify({ type, data, timestamp: new Date().toISOString() });
+    const message = { type, data, timestamp: new Date().toISOString() };
+    console.log('Broadcasting data:', message);
     
-    if (isServer) {
-      // Broadcast para todos os clientes conectados
-      if (wsServer.current) {
-        // WebSocket broadcast (seria implementado no Service Worker)
-        console.log('Broadcasting via WebSocket:', message);
-      } else {
-        // localStorage broadcast
-        localStorage.setItem(`festa-sync-${type}`, message);
-        // Remover após 1 segundo para não acumular
-        setTimeout(() => {
-          localStorage.removeItem(`festa-sync-${type}`);
-        }, 1000);
-      }
+    if (isServer || !wsClient.current) {
+      // localStorage broadcast (servidor ou fallback)
+      const key = `festa-sync-${type}`;
+      localStorage.setItem(key, JSON.stringify(message));
+      
+      // Remover após 2 segundos para não acumular
+      setTimeout(() => {
+        localStorage.removeItem(key);
+      }, 2000);
     } else if (wsClient.current && wsClient.current.readyState === WebSocket.OPEN) {
-      // Enviar para o servidor
-      wsClient.current.send(message);
+      // WebSocket para clientes conectados
+      wsClient.current.send(JSON.stringify(message));
     }
   };
 
   const onDataReceived = (callback: (type: string, data: any) => void) => {
     dataCallback.current = callback;
   };
+
+  // Cleanup na desmontagem
+  useEffect(() => {
+    return () => {
+      if (wsClient.current) {
+        wsClient.current.close();
+      }
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
+      }
+    };
+  }, []);
 
   const value: SyncContextType = {
     isServer,

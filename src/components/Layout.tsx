@@ -26,7 +26,8 @@ import {
   Shield,
   Gem,
   Flame,
-  TreePine
+  TreePine,
+  Wifi
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -63,7 +64,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600', adminOnly: true },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600', adminOnly: true },
     { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600', adminOnly: true },
-    { path: '/sincronizacao', icon: Settings, label: 'Sincronização', color: 'text-cyan-600', adminOnly: false },
+    { path: '/sincronizacao', icon: Wifi, label: 'Sincronização', color: 'text-cyan-600', adminOnly: false },
     { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600', adminOnly: true },
   ];
 
@@ -72,15 +73,6 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     if (user?.role === 'admin') return true;
     return !item.adminOnly;
   });
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
   const handleSignOut = async () => {
     if (confirm('Tem certeza que deseja sair do sistema?')) {

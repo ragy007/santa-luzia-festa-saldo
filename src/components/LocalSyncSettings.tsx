@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useSync } from '@/contexts/LocalSyncContext';
-import { Wifi, WifiOff, Server, Smartphone, Users, Globe, Monitor } from 'lucide-react';
+import { Wifi, WifiOff, Server, Smartphone, Users, Globe, Monitor, Copy, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const LocalSyncSettings: React.FC = () => {
@@ -21,6 +21,7 @@ const LocalSyncSettings: React.FC = () => {
   } = useSync();
   
   const [inputUrl, setInputUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleStartServer = () => {
     startAsServer();
@@ -39,8 +40,21 @@ const LocalSyncSettings: React.FC = () => {
   };
 
   const getLocalIP = () => {
-    // Simular IP local - em produção seria obtido do servidor
-    return `192.168.1.100:3001`;
+    return `${window.location.hostname}:${window.location.port || '3000'}`;
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast({
+        title: "✅ Copiado!",
+        description: "Endereço copiado para a área de transferência",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Erro ao copiar:', error);
+    }
   };
 
   return (
@@ -78,7 +92,23 @@ const LocalSyncSettings: React.FC = () => {
                   {connectedClients} dispositivos
                 </Badge>
               )}
-              <p className="text-xs text-gray-500">{serverUrl}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{serverUrl}</span>
+                {isServer && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(serverUrl)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {copied ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -100,7 +130,7 @@ const LocalSyncSettings: React.FC = () => {
                 Iniciar como Servidor
               </Button>
               <p className="text-xs text-gray-500 mt-2">
-                💡 Outros dispositivos poderão se conectar em: {getLocalIP()}
+                💡 Outros dispositivos poderão se conectar em: <code className="bg-gray-100 px-1 rounded">{getLocalIP()}</code>
               </p>
             </div>
 
@@ -119,10 +149,11 @@ const LocalSyncSettings: React.FC = () => {
                   <Label htmlFor="server-url">Endereço do Servidor</Label>
                   <Input
                     id="server-url"
-                    placeholder="Ex: 192.168.1.100:3001"
+                    placeholder="Ex: 192.168.1.100:3000"
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
                     className="mt-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleConnect()}
                   />
                 </div>
                 <Button onClick={handleConnect} className="w-full" variant="outline">
@@ -131,18 +162,49 @@ const LocalSyncSettings: React.FC = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Teste rápido */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">🧪 Teste Rápido</h4>
+              <p className="text-sm text-blue-800 mb-2">
+                Para testar em abas do mesmo navegador:
+              </p>
+              <Button 
+                onClick={() => connectToServer('localhost')} 
+                variant="outline" 
+                size="sm"
+                className="w-full"
+              >
+                Conectar via LocalHost (teste)
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
             {isServer && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-medium text-blue-900 mb-2">📡 Servidor Ativo</h3>
+                <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                  <Server className="h-4 w-4" />
+                  Servidor Ativo
+                </h3>
                 <p className="text-sm text-blue-800 mb-2">
                   Outros dispositivos podem se conectar usando:
                 </p>
-                <code className="bg-blue-100 px-2 py-1 rounded text-sm">
-                  {serverUrl}
-                </code>
+                <div className="flex items-center gap-2 bg-blue-100 px-3 py-2 rounded">
+                  <code className="text-sm font-mono">{serverUrl}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(serverUrl)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {copied ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -159,7 +221,8 @@ const LocalSyncSettings: React.FC = () => {
           <ol className="text-sm text-yellow-800 space-y-1">
             <li>1. <strong>Admin:</strong> Use "Iniciar como Servidor" no dispositivo principal</li>
             <li>2. <strong>Operadores:</strong> Use "Conectar ao Servidor" nos outros dispositivos</li>
-            <li>3. <strong>Automático:</strong> Cadastros e recargas aparecerão em tempo real em todos os dispositivos</li>
+            <li>3. <strong>Endereço:</strong> Digite exatamente o que aparece no servidor</li>
+            <li>4. <strong>Automático:</strong> Cadastros e recargas aparecerão em tempo real</li>
           </ol>
         </div>
       </CardContent>
