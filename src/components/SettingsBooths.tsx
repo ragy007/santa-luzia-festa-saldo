@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, Store, Package, Gift } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/LocalAppContext';
 import { toast } from '@/hooks/use-toast';
 
 interface ProductForm {
@@ -16,7 +15,7 @@ interface ProductForm {
 }
 
 const SettingsBooths: React.FC = () => {
-  const { state, addBooth, updateBooth, deleteBooth, addProduct } = useApp();
+  const { participants, transactions, products, booths, closingOptions, settings, addParticipant, updateParticipant, deleteParticipant, getParticipantByCard, addTransaction, addProduct, updateProduct, deleteProduct, addBooth, updateBooth, deleteBooth, addClosingOption, saveSettings, clearAllData, getTotalSales, getTotalActiveBalance, isFestivalActive } = useApp();
   const [newBoothName, setNewBoothName] = useState('');
   const [boothProducts, setBoothProducts] = useState<ProductForm[]>([]);
 
@@ -45,7 +44,7 @@ const SettingsBooths: React.FC = () => {
       return;
     }
 
-    if (state.booths.some(booth => booth.name.toLowerCase() === newBoothName.trim().toLowerCase())) {
+    if (booths.some(booth => booth.name.toLowerCase() === newBoothName.trim().toLowerCase())) {
       toast({
         title: "Erro",
         description: "Já existe uma barraca com este nome",
@@ -220,17 +219,17 @@ const SettingsBooths: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Barracas Cadastradas ({state.booths.length})</CardTitle>
+          <CardTitle>Barracas Cadastradas ({booths.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {state.booths.length === 0 ? (
+          {booths.length === 0 ? (
             <p className="text-gray-500 text-center py-4">
               Nenhuma barraca cadastrada ainda
             </p>
           ) : (
             <div className="space-y-3">
-              {state.booths.map((booth) => {
-                const boothProductsCount = state.products.filter(p => p.booth === booth.name).length;
+              {booths.map((booth) => {
+                const boothProductsCount = products.filter(p => p.booth === booth.name).length;
                 return (
                   <div
                     key={booth.id}
