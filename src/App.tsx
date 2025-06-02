@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { AuthProvider } from "./contexts/LocalAuthContext";
-import { AppProvider } from "./contexts/LocalAppContext";
+import { SyncedAppProvider } from "./contexts/SyncedAppContext";
 import LocalProtectedRoute from "./components/LocalProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Cadastro from "./pages/Cadastro";
@@ -29,7 +29,7 @@ const App = () => (
       <Sonner />
       <SettingsProvider>
         <AuthProvider>
-          <AppProvider>
+          <SyncedAppProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="/landing" element={<LandingPage />} />
@@ -102,7 +102,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </AppProvider>
+          </SyncedAppProvider>
         </AuthProvider>
       </SettingsProvider>
     </TooltipProvider>
