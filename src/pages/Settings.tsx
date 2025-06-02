@@ -6,6 +6,7 @@ import SettingsGeneral from '../components/SettingsGeneral';
 import SettingsTheme from '../components/SettingsTheme';
 import SettingsBooths from '../components/SettingsBooths';
 import SettingsIcons from '../components/SettingsIcons';
+import SettingsSync from '../components/SettingsSync';
 import LocalSettingsUsers from '../components/LocalSettingsUsers';
 
 const Settings: React.FC = () => {
@@ -24,11 +25,12 @@ const Settings: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">Geral</TabsTrigger>
             <TabsTrigger value="theme">Tema</TabsTrigger>
             <TabsTrigger value="booths">Barracas</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="sync">Sincronização</TabsTrigger>
             <TabsTrigger value="icons">Ícones</TabsTrigger>
           </TabsList>
 
@@ -46,6 +48,10 @@ const Settings: React.FC = () => {
 
           <TabsContent value="users" className="mt-6">
             <LocalSettingsUsers />
+          </TabsContent>
+
+          <TabsContent value="sync" className="mt-6">
+            <SettingsSync />
           </TabsContent>
 
           <TabsContent value="icons" className="mt-6">
