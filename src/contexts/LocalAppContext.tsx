@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Participant, Transaction, Product, Booth, ClosingOption } from '../types';
 import { Settings } from '@/types/settings';
@@ -32,6 +31,8 @@ interface AppContextType {
   addClosingOption: (option: ClosingOption) => void;
   
   saveSettings: (newSettings: Partial<Settings>) => void;
+  
+  clearAllData: () => void;
   
   // Computed
   getTotalSales: () => number;
@@ -228,6 +229,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
+  // Clear all data function
+  const clearAllData = () => {
+    setParticipants([]);
+    setTransactions([]);
+    setProducts([]);
+    setBooths([]);
+    setClosingOptions([]);
+    
+    // Clear localStorage
+    localStorage.removeItem('festa-participants');
+    localStorage.removeItem('festa-transactions');
+    localStorage.removeItem('festa-products');
+    localStorage.removeItem('festa-booths');
+    localStorage.removeItem('festa-closing-options');
+  };
+
   // Computed values
   const getTotalSales = (): number => {
     return transactions
@@ -275,6 +292,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteBooth,
     addClosingOption,
     saveSettings,
+    clearAllData,
     getTotalSales,
     getTotalActiveBalance,
     isFestivalActive
