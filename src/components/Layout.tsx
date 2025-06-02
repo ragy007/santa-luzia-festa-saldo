@@ -63,6 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600', adminOnly: true },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600', adminOnly: true },
     { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600', adminOnly: true },
+    { path: '/sincronizacao', icon: Settings, label: 'Sincronização', color: 'text-cyan-600', adminOnly: false },
     { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600', adminOnly: true },
   ];
 

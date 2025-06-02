@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,7 @@ import Historico from "./pages/Historico";
 import Relatorios from "./pages/Relatorios";
 import Encerramento from "./pages/Encerramento";
 import Settings from "./pages/Settings";
+import Sincronizacao from "./pages/Sincronizacao";
 import LocalAuth from "./pages/LocalAuth";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
