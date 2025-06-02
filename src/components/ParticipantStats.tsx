@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/LocalAppContext';
 import { Users } from 'lucide-react';
 
 const ParticipantStats: React.FC = () => {
