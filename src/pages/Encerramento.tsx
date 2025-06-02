@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/LocalAppContext';
 import { CheckCircle, DollarSign, Gift, Heart, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
