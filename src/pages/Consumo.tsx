@@ -24,15 +24,28 @@ const Consumo: React.FC = () => {
 
   // Definir barraca automaticamente se o usuário for operador
   useEffect(() => {
+    console.log('User:', user);
+    console.log('Available booths:', booths);
+    
     if (user?.role === 'operator' && user.boothId) {
-      setSelectedBooth(user.boothId);
+      // Procurar a barraca pelo nome
+      const userBooth = booths.find(b => b.name === user.boothId);
+      console.log('User booth found:', userBooth);
+      
+      if (userBooth) {
+        setSelectedBooth(userBooth.name);
+      } else {
+        console.warn('Barraca do usuário não encontrada:', user.boothId);
+      }
     }
-  }, [user]);
+  }, [user, booths]);
 
   // Filtrar barracas baseado no usuário
   const availableBooths = user?.role === 'admin' 
     ? booths.filter(b => b.isActive)
     : booths.filter(b => b.isActive && b.name === user?.boothId);
+
+  console.log('Available booths for user:', availableBooths);
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -260,7 +273,7 @@ const Consumo: React.FC = () => {
           </p>
           {user?.role === 'operator' && user.boothId && (
             <p className="text-sm text-blue-600 font-medium mt-2">
-              Barraca: {user.boothId}
+              Operador: {user.name} - Barraca: {user.boothId}
             </p>
           )}
         </div>
@@ -310,7 +323,7 @@ const Consumo: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Seleção de Barraca */}
+            {/* Seleção de Barraca - Só para Admin */}
             {user?.role === 'admin' && (
               <Card>
                 <CardHeader>
@@ -318,7 +331,7 @@ const Consumo: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-2">
-                    {availableBooths.map((booth) => (
+                    {booths.filter(b => b.isActive).map((booth) => (
                       <Button
                         key={booth.id}
                         variant={selectedBooth === booth.name ? "default" : "outline"}
@@ -329,6 +342,16 @@ const Consumo: React.FC = () => {
                       </Button>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Status da Barraca para Operadores */}
+            {user?.role === 'operator' && selectedBooth && (
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-green-800 mb-1">Barraca Ativa</h3>
+                  <p className="text-green-700">{selectedBooth}</p>
                 </CardContent>
               </Card>
             )}
