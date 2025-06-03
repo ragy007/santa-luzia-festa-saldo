@@ -1,25 +1,38 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import QRCodeScanner from '../components/QRCodeScanner';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '../contexts/LocalAppContext';
-import { ShoppingCart, Search, Minus, Plus, Receipt, Scan } from 'lucide-react';
+import { useAuth } from '@/contexts/LocalAuthContext';
+import { ShoppingCart, Search, Minus, Plus, Receipt, Scan, Barcode } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Consumo: React.FC = () => {
   const { addTransaction, getParticipantByCard, participants, products, booths } = useApp();
+  const { user } = useAuth();
   const [searchCard, setSearchCard] = useState('');
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [selectedBooth, setSelectedBooth] = useState('');
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
-  const [operatorName, setOperatorName] = useState('');
   const [customProduct, setCustomProduct] = useState({ name: '', price: 0 });
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
+  // Definir barraca automaticamente se o usuário for operador
+  useEffect(() => {
+    if (user?.role === 'operator' && user.boothId) {
+      setSelectedBooth(user.boothId);
+    }
+  }, [user]);
+
+  // Filtrar barracas baseado no usuário
+  const availableBooths = user?.role === 'admin' 
+    ? booths.filter(b => b.isActive)
+    : booths.filter(b => b.isActive && b.name === user?.boothId);
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -52,6 +65,10 @@ const Consumo: React.FC = () => {
     setShowQRScanner(true);
   };
 
+  const handleBarcodeSearch = () => {
+    setShowBarcodeScanner(true);
+  };
+
   const handleQRCodeScan = (cardNumber: string) => {
     setSearchCard(cardNumber);
     setShowQRScanner(false);
@@ -68,6 +85,27 @@ const Consumo: React.FC = () => {
       toast({
         title: "Participante não encontrado",
         description: "QR Code não corresponde a nenhum participante cadastrado",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBarcodeScan = (barcode: string) => {
+    setShowBarcodeScanner(false);
+    
+    // Buscar produto pelo código de barras
+    const product = products.find(p => p.id === barcode || p.name.toLowerCase().includes(barcode.toLowerCase()));
+    
+    if (product && product.booth === selectedBooth) {
+      addToCart(product);
+      toast({
+        title: "Produto encontrado!",
+        description: `${product.name} adicionado ao carrinho`,
+      });
+    } else {
+      toast({
+        title: "Produto não encontrado",
+        description: "Código de barras não corresponde a nenhum produto desta barraca",
         variant: "destructive",
       });
     }
@@ -165,15 +203,6 @@ const Consumo: React.FC = () => {
       return;
     }
 
-    if (!operatorName) {
-      toast({
-        title: "Erro",
-        description: "Nome do operador é obrigatório",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const totalAmount = getTotalAmount();
 
     if (selectedParticipant.balance < totalAmount) {
@@ -196,7 +225,7 @@ const Consumo: React.FC = () => {
       amount: totalAmount,
       description: description,
       booth: selectedBooth,
-      operatorName: operatorName,
+      operatorName: user?.name || 'Sistema',
     });
 
     toast({
@@ -229,6 +258,11 @@ const Consumo: React.FC = () => {
           <p className="text-gray-600">
             Registre vendas e debite valores dos cartões
           </p>
+          {user?.role === 'operator' && user.boothId && (
+            <p className="text-sm text-blue-600 font-medium mt-2">
+              Barraca: {user.boothId}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -276,64 +310,61 @@ const Consumo: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Seleção de Barraca e Operador */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações da Venda</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="booth">Barraca *</Label>
-                  <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Selecione uma barraca" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {booths.filter(b => b.isActive).map((booth) => (
-                        <SelectItem key={booth.id} value={booth.name}>
-                          {booth.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="operatorName">Nome do Vendedor *</Label>
-                  <Input
-                    id="operatorName"
-                    placeholder="Digite seu nome"
-                    value={operatorName}
-                    onChange={(e) => setOperatorName(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Seleção de Barraca */}
+            {user?.role === 'admin' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Selecionar Barraca</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-2">
+                    {availableBooths.map((booth) => (
+                      <Button
+                        key={booth.id}
+                        variant={selectedBooth === booth.name ? "default" : "outline"}
+                        className="justify-start h-12"
+                        onClick={() => setSelectedBooth(booth.name)}
+                      >
+                        {booth.name}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Produtos */}
             {selectedBooth && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Produtos - {selectedBooth}</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Produtos - {selectedBooth}</span>
+                    <Button
+                      onClick={handleBarcodeSearch}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Barcode className="h-4 w-4 mr-2" />
+                      Código de Barras
+                    </Button>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-2">
                     {boothProducts.length > 0 ? (
                       boothProducts.map((product) => (
-                        <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                          <div>
+                        <Button
+                          key={product.id}
+                          onClick={() => addToCart(product)}
+                          variant="outline"
+                          className="flex items-center justify-between p-4 h-auto"
+                        >
+                          <div className="text-left">
                             <p className="font-medium">{product.name}</p>
                             <p className="text-sm text-gray-500">{formatCurrency(product.price)}</p>
                           </div>
-                          <Button
-                            onClick={() => addToCart(product)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
+                          <Plus className="h-4 w-4" />
+                        </Button>
                       ))
                     ) : (
                       <p className="text-gray-500 text-center py-4">
@@ -431,7 +462,7 @@ const Consumo: React.FC = () => {
                       <Button
                         onClick={handleSale}
                         className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                        disabled={!selectedParticipant || !selectedBooth || !operatorName}
+                        disabled={!selectedParticipant || !selectedBooth}
                       >
                         <Receipt className="h-4 w-4 mr-2" />
                         Finalizar Venda - {formatCurrency(getTotalAmount())}
@@ -454,6 +485,12 @@ const Consumo: React.FC = () => {
           isOpen={showQRScanner}
           onScan={handleQRCodeScan}
           onClose={() => setShowQRScanner(false)}
+        />
+
+        <BarcodeScanner
+          isOpen={showBarcodeScanner}
+          onScan={handleBarcodeScan}
+          onClose={() => setShowBarcodeScanner(false)}
         />
       </div>
     </Layout>

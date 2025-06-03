@@ -31,9 +31,9 @@ export const useAuth = () => {
 // Credenciais padrão do sistema
 const defaultCredentials = [
   { id: '1', email: 'admin@festa.com', password: '123456', name: 'Administrador', role: 'admin' as const },
-  { id: '2', email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const },
-  { id: '3', email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const },
-  { id: '4', email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const }
+  { id: '2', email: 'operador@festa.com', password: '123456', name: 'Operador 1', role: 'operator' as const, boothId: 'Barraca de Bebidas' },
+  { id: '3', email: 'operador2@festa.com', password: '123456', name: 'Operador 2', role: 'operator' as const, boothId: 'Barraca de Comidas' },
+  { id: '4', email: 'operador3@festa.com', password: '123456', name: 'Operador 3', role: 'operator' as const, boothId: 'Barraca de Doces' }
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
