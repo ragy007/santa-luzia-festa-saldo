@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import QRCodeScanner from '../components/QRCodeScanner';
@@ -28,12 +27,13 @@ const Consumo: React.FC = () => {
     console.log('Available booths:', booths);
     
     if (user?.role === 'operator' && user.boothId) {
-      // Procurar a barraca pelo nome
-      const userBooth = booths.find(b => b.name === user.boothId);
+      // Procurar a barraca pelo ID (user.boothId é o ID da barraca)
+      const userBooth = booths.find(b => b.id === user.boothId);
       console.log('User booth found:', userBooth);
       
       if (userBooth) {
         setSelectedBooth(userBooth.name);
+        console.log('Barraca selecionada para operador:', userBooth.name);
       } else {
         console.warn('Barraca do usuário não encontrada:', user.boothId);
       }
@@ -43,7 +43,7 @@ const Consumo: React.FC = () => {
   // Filtrar barracas baseado no usuário
   const availableBooths = user?.role === 'admin' 
     ? booths.filter(b => b.isActive)
-    : booths.filter(b => b.isActive && b.name === user?.boothId);
+    : booths.filter(b => b.isActive && b.id === user?.boothId);
 
   console.log('Available booths for user:', availableBooths);
 
@@ -273,7 +273,7 @@ const Consumo: React.FC = () => {
           </p>
           {user?.role === 'operator' && user.boothId && (
             <p className="text-sm text-blue-600 font-medium mt-2">
-              Operador: {user.name} - Barraca: {user.boothId}
+              Operador: {user.name} - Barraca: {booths.find(b => b.id === user.boothId)?.name || user.boothId}
             </p>
           )}
         </div>
