@@ -5,9 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SettingsProvider } from "./contexts/SettingsContext";
-import { LocalAppProvider } from "./contexts/LocalAppContext";
-import { LocalAuthProvider } from "./contexts/LocalAuthContext";
-import { LocalSyncProvider } from "./contexts/LocalSyncContext";
+import { AppProvider } from "./contexts/LocalAppContext";
+import { AuthProvider } from "./contexts/LocalAuthContext";
+import { SyncProvider } from "./contexts/LocalSyncContext";
 import LocalProtectedRoute from "./components/LocalProtectedRoute";
 
 // Páginas
@@ -36,9 +36,9 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <SettingsProvider>
-            <LocalAppProvider>
-              <LocalAuthProvider>
-                <LocalSyncProvider>
+            <AppProvider>
+              <AuthProvider>
+                <SyncProvider>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<LocalAuth />} />
@@ -103,9 +103,9 @@ function App() {
                     {/* Página 404 */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </LocalSyncProvider>
-              </LocalAuthProvider>
-            </LocalAppProvider>
+                </SyncProvider>
+              </AuthProvider>
+            </AppProvider>
           </SettingsProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -48,6 +48,8 @@ const ParticipantForm: React.FC = () => {
         cardNumber: formData.cardNumber,
         phone: formData.phone,
         initialBalance: formData.initialBalance,
+        balance: formData.initialBalance,
+        isActive: true
       });
 
       // Salvar dados para impressão

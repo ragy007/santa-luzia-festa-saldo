@@ -28,14 +28,14 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { settings } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
+    signOut();
     navigate('/auth');
   };
 
