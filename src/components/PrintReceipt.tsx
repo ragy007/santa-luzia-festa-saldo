@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { useApp } from '../contexts/LocalAppContext';
 
 interface PrintReceiptProps {
@@ -233,7 +233,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({ type, data }) => {
       size="sm"
       className="ml-2"
     >
-      <printer className="h-4 w-4 mr-1" />
+      <Printer className="h-4 w-4 mr-1" />
       Imprimir Filipeta
     </Button>
   );
