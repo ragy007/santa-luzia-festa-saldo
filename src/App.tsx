@@ -24,6 +24,7 @@ import Encerramento from "./pages/Encerramento";
 import Settings from "./pages/Settings";
 import GuiaUso from "./pages/GuiaUso";
 import Documentacao from "./pages/Documentacao";
+import Sincronizacao from "./pages/Sincronizacao";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,17 +46,17 @@ function App() {
                     
                     {/* Rotas protegidas */}
                     <Route path="/dashboard" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Dashboard />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/cadastro" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Cadastro />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/recarga" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Recarga />
                       </LocalProtectedRoute>
                     } />
@@ -70,32 +71,37 @@ function App() {
                       </LocalProtectedRoute>
                     } />
                     <Route path="/historico" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Historico />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/relatorios" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Relatorios />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/encerramento" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Encerramento />
                       </LocalProtectedRoute>
                     } />
-                    <Route path="/settings" element={
+                    <Route path="/sincronizacao" element={
                       <LocalProtectedRoute>
+                        <Sincronizacao />
+                      </LocalProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Settings />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/guia-uso" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <GuiaUso />
                       </LocalProtectedRoute>
                     } />
                     <Route path="/documentacao" element={
-                      <LocalProtectedRoute>
+                      <LocalProtectedRoute requireAdmin={true}>
                         <Documentacao />
                       </LocalProtectedRoute>
                     } />

@@ -19,7 +19,8 @@ import {
   X,
   BookOpen,
   FileText,
-  Clock
+  Clock,
+  Wifi
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -39,7 +40,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     navigate('/auth');
   };
 
-  const menuItems = [
+  // Itens para administradores
+  const adminMenuItems = [
     { 
       name: 'Dashboard', 
       path: '/dashboard', 
@@ -90,6 +92,33 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     },
   ];
 
+  // Itens para operadores (apenas consumo e consultar saldo)
+  const operatorMenuItems = [
+    { 
+      name: 'Consumo', 
+      path: '/consumo', 
+      icon: ShoppingCart,
+      description: 'Registrar vendas'
+    },
+    { 
+      name: 'Consultar Saldo', 
+      path: '/consultar-saldo', 
+      icon: Eye,
+      description: 'Ver saldo e histórico'
+    },
+  ];
+
+  // Itens de sincronização (para todos)
+  const syncItems = [
+    { 
+      name: 'Sincronização', 
+      path: '/sincronizacao', 
+      icon: Wifi,
+      description: 'Conectar dispositivos'
+    },
+  ];
+
+  // Itens de administração (apenas admin)
   const adminItems = [
     { 
       name: 'Configurações', 
@@ -111,6 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     },
   ];
 
+  const menuItems = user?.role === 'admin' ? adminMenuItems : operatorMenuItems;
   const isCurrentPath = (path: string) => location.pathname === path;
 
   const sidebarContent = (
@@ -159,6 +189,35 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
               <item.icon className={cn(
                 "mr-3 h-5 w-5 flex-shrink-0",
                 isCurrentPath(item.path) ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"
+              )} />
+              <div className="flex-1">
+                <div className="font-medium">{item.name}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Sincronização Menu (para todos) */}
+        <div className="space-y-1 pt-6 border-t border-gray-200">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-3">
+            Sistema
+          </p>
+          {syncItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors group",
+                isCurrentPath(item.path)
+                  ? "bg-green-100 text-green-700"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              )}
+            >
+              <item.icon className={cn(
+                "mr-3 h-5 w-5 flex-shrink-0",
+                isCurrentPath(item.path) ? "text-green-500" : "text-gray-400 group-hover:text-gray-500"
               )} />
               <div className="flex-1">
                 <div className="font-medium">{item.name}</div>
