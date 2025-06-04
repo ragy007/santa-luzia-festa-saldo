@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import QRCodeScanner from '../components/QRCodeScanner';
 import BarcodeScanner from '../components/BarcodeScanner';
+import PrintReceipt from '../components/PrintReceipt';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ const Consumo: React.FC = () => {
   const [customProduct, setCustomProduct] = useState({ name: '', price: 0 });
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [lastSale, setLastSale] = useState<any>(null);
 
   // Definir barraca automaticamente se o usuário for operador
   useEffect(() => {
@@ -232,6 +234,8 @@ const Consumo: React.FC = () => {
       .map(item => `${item.quantity}x ${item.product.name}`)
       .join(', ');
 
+    const previousBalance = selectedParticipant.balance;
+
     addTransaction({
       participantId: selectedParticipant.id,
       type: 'debit',
@@ -239,6 +243,16 @@ const Consumo: React.FC = () => {
       description: description,
       booth: selectedBooth,
       operatorName: user?.name || 'Sistema',
+    });
+
+    // Salvar dados para impressão
+    setLastSale({
+      participantName: selectedParticipant.name,
+      cardNumber: selectedParticipant.cardNumber,
+      amount: totalAmount,
+      balance: previousBalance - totalAmount,
+      items: description,
+      operatorName: user?.name || 'Sistema'
     });
 
     toast({
@@ -482,14 +496,23 @@ const Consumo: React.FC = () => {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={handleSale}
-                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                        disabled={!selectedParticipant || !selectedBooth}
-                      >
-                        <Receipt className="h-4 w-4 mr-2" />
-                        Finalizar Venda - {formatCurrency(getTotalAmount())}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleSale}
+                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                          disabled={!selectedParticipant || !selectedBooth}
+                        >
+                          <Receipt className="h-4 w-4 mr-2" />
+                          Finalizar Venda - {formatCurrency(getTotalAmount())}
+                        </Button>
+                        
+                        {lastSale && (
+                          <PrintReceipt
+                            type="consumo"
+                            data={lastSale}
+                          />
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div className="text-center py-8 text-gray-500">

@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '../contexts/LocalAppContext';
+import { useAuth } from '@/contexts/LocalAuthContext';
 import { UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import PrintReceipt from './PrintReceipt';
 
 const ParticipantForm: React.FC = () => {
   const { addParticipant, getParticipantByCard } = useApp();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
@@ -17,6 +20,7 @@ const ParticipantForm: React.FC = () => {
     initialBalance: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastCreatedParticipant, setLastCreatedParticipant] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +55,21 @@ const ParticipantForm: React.FC = () => {
         return;
       }
 
-      addParticipant({
+      const newParticipant = {
         name: formData.name || `Participante ${formData.cardNumber}`,
         cardNumber: formData.cardNumber,
         phone: formData.phone,
         balance: formData.initialBalance,
         initialBalance: formData.initialBalance,
         isActive: true,
+      };
+
+      addParticipant(newParticipant);
+
+      // Salvar dados para impressão
+      setLastCreatedParticipant({
+        ...newParticipant,
+        operatorName: user?.name || 'Sistema'
       });
 
       // Limpar formulário após sucesso
@@ -163,14 +175,28 @@ const ParticipantForm: React.FC = () => {
             </p>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-            disabled={isSubmitting}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            {isSubmitting ? 'Cadastrando...' : 'Cadastrar Participante'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              type="submit" 
+              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              disabled={isSubmitting}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Cadastrando...' : 'Cadastrar Participante'}
+            </Button>
+            
+            {lastCreatedParticipant && (
+              <PrintReceipt
+                type="cadastro"
+                data={{
+                  participantName: lastCreatedParticipant.name,
+                  cardNumber: lastCreatedParticipant.cardNumber,
+                  balance: lastCreatedParticipant.balance,
+                  operatorName: lastCreatedParticipant.operatorName
+                }}
+              />
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

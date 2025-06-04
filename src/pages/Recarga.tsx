@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,15 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '../contexts/LocalAppContext';
+import { useAuth } from '@/contexts/LocalAuthContext';
 import { CreditCard, Search, Plus, DollarSign, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import PrintReceipt from '../components/PrintReceipt';
 
 const Recarga: React.FC = () => {
   const { addTransaction, getParticipantByCard, participants, transactions } = useApp();
+  const { user } = useAuth();
   const [searchCard, setSearchCard] = useState('');
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [rechargeAmount, setRechargeAmount] = useState(0);
-  const [operatorName, setOperatorName] = useState('');
+  const [lastRecharge, setLastRecharge] = useState<any>(null);
+
+  // Usar o nome do usuário logado automaticamente
+  const operatorName = user?.name || 'Sistema';
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -62,14 +67,7 @@ const Recarga: React.FC = () => {
       return;
     }
 
-    if (!operatorName) {
-      toast({
-        title: "Erro",
-        description: "Nome do operador é obrigatório",
-        variant: "destructive",
-      });
-      return;
-    }
+    const previousBalance = selectedParticipant.balance;
 
     addTransaction({
       participantId: selectedParticipant.id,
@@ -77,6 +75,15 @@ const Recarga: React.FC = () => {
       amount: rechargeAmount,
       description: 'Recarga via maquininha',
       operatorName: operatorName,
+    });
+
+    // Salvar dados para impressão
+    setLastRecharge({
+      participantName: selectedParticipant.name,
+      cardNumber: selectedParticipant.cardNumber,
+      amount: rechargeAmount,
+      balance: previousBalance + rechargeAmount,
+      operatorName: operatorName
     });
 
     toast({
@@ -119,6 +126,9 @@ const Recarga: React.FC = () => {
           </h1>
           <p className="text-gray-600">
             Adicione saldo aos cartões dos participantes
+          </p>
+          <p className="text-sm text-blue-600 font-medium mt-1">
+            Operador: {operatorName}
           </p>
         </div>
 
@@ -169,18 +179,6 @@ const Recarga: React.FC = () => {
                 {selectedParticipant && (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="operatorName">Nome do Operador *</Label>
-                      <Input
-                        id="operatorName"
-                        placeholder="Digite seu nome"
-                        value={operatorName}
-                        onChange={(e) => setOperatorName(e.target.value)}
-                        className="mt-1"
-                        required
-                      />
-                    </div>
-
-                    <div>
                       <Label htmlFor="rechargeAmount">Valor da Recarga *</Label>
                       <Input
                         id="rechargeAmount"
@@ -212,14 +210,23 @@ const Recarga: React.FC = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      onClick={handleRecharge} 
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                      disabled={!rechargeAmount || !operatorName}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Realizar Recarga de {formatCurrency(rechargeAmount)}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleRecharge} 
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                        disabled={!rechargeAmount}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Realizar Recarga de {formatCurrency(rechargeAmount)}
+                      </Button>
+                      
+                      {lastRecharge && (
+                        <PrintReceipt
+                          type="recarga"
+                          data={lastRecharge}
+                        />
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>

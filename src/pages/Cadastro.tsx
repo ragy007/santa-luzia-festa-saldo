@@ -5,6 +5,8 @@ import ParticipantForm from '../components/ParticipantForm';
 import ParticipantStats from '../components/ParticipantStats';
 import RecentParticipants from '../components/RecentParticipants';
 import QRCodeInfo from '../components/QRCodeInfo';
+import ExportData from '../components/ExportData';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Cadastro: React.FC = () => {
   return (
@@ -18,6 +20,23 @@ const Cadastro: React.FC = () => {
             Registre novos participantes e seus cartões/pulseiras
           </p>
         </div>
+
+        {/* Botões de Exportação */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Exportar Dados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <ExportData type="participants" />
+              <ExportData type="transactions" />
+              <ExportData type="full-backup" />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Use estas opções para exportar dados do evento para análise e marketing futuro
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Formulário de Cadastro */}

@@ -45,6 +45,11 @@ export const useFestivalSettings = () => {
           },
         };
         setSettings(mappedSettings);
+        
+        // Forçar atualização no contexto local também
+        window.dispatchEvent(new CustomEvent('settings-updated', { 
+          detail: mappedSettings 
+        }));
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -81,9 +86,19 @@ export const useFestivalSettings = () => {
           religious_message: newSettings.religiousMessage,
           primary_icon: newSettings.primaryIcon,
           secondary_icon: newSettings.secondaryIcon,
+        }, {
+          onConflict: 'id'
         });
 
       if (error) throw error;
+
+      // Atualizar estado local imediatamente
+      setSettings(prev => prev ? { ...prev, ...newSettings } : prev);
+      
+      // Forçar atualização em outros componentes
+      window.dispatchEvent(new CustomEvent('settings-updated', { 
+        detail: { ...settings, ...newSettings }
+      }));
 
       toast({
         title: "Sucesso!",
@@ -116,8 +131,18 @@ export const useFestivalSettings = () => {
       )
       .subscribe();
 
+    // Escutar eventos customizados
+    const handleSettingsUpdate = (event: any) => {
+      if (event.detail) {
+        setSettings(event.detail);
+      }
+    };
+
+    window.addEventListener('settings-updated', handleSettingsUpdate);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('settings-updated', handleSettingsUpdate);
     };
   }, []);
 
