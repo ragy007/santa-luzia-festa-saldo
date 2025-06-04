@@ -1,33 +1,25 @@
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../contexts/LocalAppContext';
 import { useAuth } from '@/contexts/LocalAuthContext';
-import Header from './Header';
-import { 
-  Home, 
-  UserPlus, 
-  CreditCard, 
-  ShoppingCart, 
-  History, 
-  BarChart3, 
+import { useApp } from '../contexts/LocalAppContext';
+import { cn } from '@/lib/utils';
+import {
+  Home,
+  Users,
+  CreditCard,
+  ShoppingCart,
+  Eye,
+  BarChart3,
+  History,
   Settings,
-  Church,
   LogOut,
-  Heart,
-  Cross,
-  Star,
-  Sun,
-  Moon,
-  Crown,
-  Sparkles,
-  Shield,
-  Gem,
-  Flame,
-  TreePine,
-  Wifi
+  Menu,
+  X,
+  BookOpen,
+  FileText,
+  Clock
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -35,121 +27,246 @@ interface LayoutProps {
   title: string;
 }
 
-const iconMap = {
-  Heart,
-  Church,
-  Cross,
-  Star,
-  Sun,
-  Moon,
-  Crown,
-  Sparkles,
-  Shield,
-  Gem,
-  Flame,
-  TreePine
-};
-
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, logout } = useAuth();
   const { settings } = useApp();
-  const { signOut, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const allMenuItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard', color: 'text-blue-600', adminOnly: true },
-    { path: '/cadastro', icon: UserPlus, label: 'Cadastro', color: 'text-green-600', adminOnly: true },
-    { path: '/recarga', icon: CreditCard, label: 'Recarga', color: 'text-yellow-600', adminOnly: true },
-    { path: '/consumo', icon: ShoppingCart, label: 'Consumo', color: 'text-orange-600', adminOnly: false },
-    { path: '/historico', icon: History, label: 'Histórico', color: 'text-purple-600', adminOnly: true },
-    { path: '/relatorios', icon: BarChart3, label: 'Relatórios', color: 'text-indigo-600', adminOnly: true },
-    { path: '/encerramento', icon: Settings, label: 'Encerramento', color: 'text-red-600', adminOnly: true },
-    { path: '/sincronizacao', icon: Wifi, label: 'Sincronização', color: 'text-cyan-600', adminOnly: false },
-    { path: '/settings', icon: Settings, label: 'Configurações', color: 'text-gray-600', adminOnly: true },
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+  };
+
+  const menuItems = [
+    { 
+      name: 'Dashboard', 
+      path: '/dashboard', 
+      icon: Home,
+      description: 'Visão geral do sistema'
+    },
+    { 
+      name: 'Cadastro', 
+      path: '/cadastro', 
+      icon: Users,
+      description: 'Registrar participantes'
+    },
+    { 
+      name: 'Recarga', 
+      path: '/recarga', 
+      icon: CreditCard,
+      description: 'Adicionar créditos'
+    },
+    { 
+      name: 'Consumo', 
+      path: '/consumo', 
+      icon: ShoppingCart,
+      description: 'Registrar vendas'
+    },
+    { 
+      name: 'Consultar Saldo', 
+      path: '/consultar-saldo', 
+      icon: Eye,
+      description: 'Ver saldo e histórico'
+    },
+    { 
+      name: 'Histórico', 
+      path: '/historico', 
+      icon: History,
+      description: 'Todas as transações'
+    },
+    { 
+      name: 'Relatórios', 
+      path: '/relatorios', 
+      icon: BarChart3,
+      description: 'Vendas e estatísticas'
+    },
+    { 
+      name: 'Encerramento', 
+      path: '/encerramento', 
+      icon: Clock,
+      description: 'Fechar festa'
+    },
   ];
 
-  // Filtrar menu baseado no role do usuário
-  const menuItems = allMenuItems.filter(item => {
-    if (user?.role === 'admin') return true;
-    return !item.adminOnly;
-  });
+  const adminItems = [
+    { 
+      name: 'Configurações', 
+      path: '/settings', 
+      icon: Settings,
+      description: 'Configurar sistema'
+    },
+    { 
+      name: 'Guia de Uso', 
+      path: '/guia-uso', 
+      icon: BookOpen,
+      description: 'Como usar o sistema'
+    },
+    { 
+      name: 'Documentação', 
+      path: '/documentacao', 
+      icon: FileText,
+      description: 'Documentação completa'
+    },
+  ];
 
-  const handleSignOut = async () => {
-    if (confirm('Tem certeza que deseja sair do sistema?')) {
-      signOut();
-      navigate('/auth');
-    }
-  };
+  const isCurrentPath = (path: string) => location.pathname === path;
 
-  const getPrimaryIcon = () => {
-    const iconName = settings?.primaryIcon || 'Heart';
-    return iconMap[iconName as keyof typeof iconMap] || Heart;
-  };
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              {settings?.title || 'Sistema de Festa'}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {settings?.subtitle || 'Gestão de Cartões'}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-  const getSecondaryIcon = () => {
-    const iconName = settings?.secondaryIcon || 'Church';
-    return iconMap[iconName as keyof typeof iconMap] || Church;
-  };
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        {/* Main Menu */}
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-3">
+            Menu Principal
+          </p>
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors group",
+                isCurrentPath(item.path)
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              )}
+            >
+              <item.icon className={cn(
+                "mr-3 h-5 w-5 flex-shrink-0",
+                isCurrentPath(item.path) ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"
+              )} />
+              <div className="flex-1">
+                <div className="font-medium">{item.name}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
 
-  const PrimaryIcon = getPrimaryIcon();
-  const SecondaryIcon = getSecondaryIcon();
+        {/* Admin Menu */}
+        {user?.role === 'admin' && (
+          <div className="space-y-1 pt-6 border-t border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-3">
+              Administração
+            </p>
+            {adminItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors group",
+                  isCurrentPath(item.path)
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                <item.icon className={cn(
+                  "mr-3 h-5 w-5 flex-shrink-0",
+                  isCurrentPath(item.path) ? "text-purple-500" : "text-gray-400 group-hover:text-gray-500"
+                )} />
+                <div className="flex-1">
+                  <div className="font-medium">{item.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      {/* User Info & Logout */}
+      <div className="p-4 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-semibold text-blue-600">
+                {user?.name?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <Header />
+    <div className="flex h-screen bg-gray-50">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 lg:bg-white lg:border-r lg:border-gray-200">
+        {sidebarContent}
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar */}
-          <div className="w-full lg:w-64 flex-shrink-0">
-            <Card className="p-4 bg-white/80 backdrop-blur-sm">
-              <nav className="space-y-2">
-                {menuItems.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  const IconComponent = item.icon;
-                  
-                  return (
-                    <Button
-                      key={item.path}
-                      variant={isActive ? "default" : "ghost"}
-                      className={`w-full justify-start h-12 ${
-                        isActive 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => navigate(item.path)}
-                    >
-                      <IconComponent className={`h-5 w-5 mr-3 ${isActive ? 'text-white' : item.color}`} />
-                      <span className="font-medium">{item.label}</span>
-                    </Button>
-                  );
-                })}
-                
-                {/* Botão de Sair */}
-                <div className="pt-4 border-t border-gray-200">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start h-12 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="h-5 w-5 mr-3" />
-                    <span className="font-medium">Sair</span>
-                  </Button>
-                </div>
-              </nav>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
-            <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
-              <div className="p-6">
-                {children}
-              </div>
-            </Card>
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="fixed inset-y-0 left-0 w-80 bg-white shadow-xl">
+            {sidebarContent}
           </div>
         </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 lg:pl-80">
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

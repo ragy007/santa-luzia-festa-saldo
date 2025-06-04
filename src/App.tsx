@@ -3,131 +3,114 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SettingsProvider } from "./contexts/SettingsContext";
-import { AuthProvider } from "./contexts/LocalAuthContext";
-import { SyncedAppProvider } from "./contexts/SyncedAppContext";
-import { BackendSyncProvider } from "./contexts/BackendSyncContext";
+import { LocalAppProvider } from "./contexts/LocalAppContext";
+import { LocalAuthProvider } from "./contexts/LocalAuthContext";
+import { LocalSyncProvider } from "./contexts/LocalSyncContext";
 import LocalProtectedRoute from "./components/LocalProtectedRoute";
+
+// Páginas
+import Index from "./pages/Index";
+import LocalAuth from "./pages/LocalAuth";
 import Dashboard from "./pages/Dashboard";
 import Cadastro from "./pages/Cadastro";
 import Recarga from "./pages/Recarga";
 import Consumo from "./pages/Consumo";
+import ConsultarSaldo from "./pages/ConsultarSaldo";
 import Historico from "./pages/Historico";
 import Relatorios from "./pages/Relatorios";
 import Encerramento from "./pages/Encerramento";
 import Settings from "./pages/Settings";
-import Sincronizacao from "./pages/Sincronizacao";
-import LocalAuth from "./pages/LocalAuth";
-import LandingPage from "./pages/LandingPage";
-import NotFound from "./pages/NotFound";
 import GuiaUso from "./pages/GuiaUso";
+import Documentacao from "./pages/Documentacao";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <SettingsProvider>
-        <AuthProvider>
-          <SyncedAppProvider>
-            <BackendSyncProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/landing" element={<LandingPage />} />
-                  <Route path="/auth" element={<LocalAuth />} />
-                  <Route path="/" element={<Navigate to="/auth" replace />} />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SettingsProvider>
+            <LocalAppProvider>
+              <LocalAuthProvider>
+                <LocalSyncProvider>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<LocalAuth />} />
+                    
+                    {/* Rotas protegidas */}
+                    <Route path="/dashboard" element={
+                      <LocalProtectedRoute>
                         <Dashboard />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/cadastro"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/cadastro" element={
+                      <LocalProtectedRoute>
                         <Cadastro />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/recarga"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/recarga" element={
+                      <LocalProtectedRoute>
                         <Recarga />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/consumo"
-                    element={
-                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                    } />
+                    <Route path="/consumo" element={
+                      <LocalProtectedRoute>
                         <Consumo />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/historico"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/consultar-saldo" element={
+                      <LocalProtectedRoute>
+                        <ConsultarSaldo />
+                      </LocalProtectedRoute>
+                    } />
+                    <Route path="/historico" element={
+                      <LocalProtectedRoute>
                         <Historico />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/relatorios"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/relatorios" element={
+                      <LocalProtectedRoute>
                         <Relatorios />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/encerramento"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/encerramento" element={
+                      <LocalProtectedRoute>
                         <Encerramento />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <LocalProtectedRoute requireAdmin>
+                    } />
+                    <Route path="/settings" element={
+                      <LocalProtectedRoute>
                         <Settings />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/sincronizacao"
-                    element={
-                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
-                        <Sincronizacao />
-                      </LocalProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/guia"
-                    element={
-                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                    } />
+                    <Route path="/guia-uso" element={
+                      <LocalProtectedRoute>
                         <GuiaUso />
                       </LocalProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </BackendSyncProvider>
-          </SyncedAppProvider>
-        </AuthProvider>
-      </SettingsProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                    } />
+                    <Route path="/documentacao" element={
+                      <LocalProtectedRoute>
+                        <Documentacao />
+                      </LocalProtectedRoute>
+                    } />
+                    
+                    {/* Página 404 */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </LocalSyncProvider>
+              </LocalAuthProvider>
+            </LocalAppProvider>
+          </SettingsProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

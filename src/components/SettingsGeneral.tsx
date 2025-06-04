@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,9 +27,32 @@ const SettingsGeneral: React.FC = () => {
     endTime: settings.endTime
   });
 
+  // Atualizar formData quando settings mudar
+  useEffect(() => {
+    setFormData({
+      name: settings.name,
+      date: settings.date,
+      location: settings.location,
+      phone: settings.phone || '',
+      logoUrl: settings.logoUrl || '',
+      title: settings.title || 'Festa Comunitária 2024',
+      subtitle: settings.subtitle || 'Centro Social da Paróquia Santa Luzia',
+      religiousMessage: settings.religiousMessage || 'Sob a proteção de Santa Maria Auxiliadora e São João Bosco',
+      isActive: settings.isActive,
+      startTime: settings.startTime,
+      endTime: settings.endTime
+    });
+  }, [settings]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings(formData);
+    
+    // Forçar atualização em outros contextos
+    window.dispatchEvent(new CustomEvent('settings-updated', { 
+      detail: formData 
+    }));
+    
     toast({
       title: "Configurações salvas!",
       description: "As configurações da festa foram atualizadas com sucesso.",

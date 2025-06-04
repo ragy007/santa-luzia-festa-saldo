@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '../contexts/LocalAppContext';
 import { useAuth } from '@/contexts/LocalAuthContext';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, DollarSign, Phone, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import PrintReceipt from './PrintReceipt';
 
 const ParticipantForm: React.FC = () => {
-  const { addParticipant, getParticipantByCard } = useApp();
+  const { addParticipant } = useApp();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -19,85 +19,71 @@ const ParticipantForm: React.FC = () => {
     phone: '',
     initialBalance: 0,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastCreatedParticipant, setLastCreatedParticipant] = useState<any>(null);
+  const [lastRegistered, setLastRegistered] = useState<any>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
+    if (!formData.name || !formData.cardNumber) {
+      toast({
+        title: "Erro",
+        description: "Nome e número do cartão são obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.initialBalance < 0) {
+      toast({
+        title: "Erro",
+        description: "O valor inicial não pode ser negativo",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      if (!formData.cardNumber) {
-        toast({
-          title: "Erro",
-          description: "Número do cartão é obrigatório",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Verificar se o cartão já existe
-      if (getParticipantByCard(formData.cardNumber)) {
-        toast({
-          title: "Erro", 
-          description: "Este número de cartão já está cadastrado",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.initialBalance < 0) {
-        toast({
-          title: "Erro",
-          description: "Saldo inicial não pode ser negativo",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const newParticipant = {
-        name: formData.name || `Participante ${formData.cardNumber}`,
+      const newParticipant = addParticipant({
+        name: formData.name,
         cardNumber: formData.cardNumber,
         phone: formData.phone,
-        balance: formData.initialBalance,
         initialBalance: formData.initialBalance,
-        isActive: true,
-      };
-
-      addParticipant(newParticipant);
+      });
 
       // Salvar dados para impressão
-      setLastCreatedParticipant({
-        ...newParticipant,
+      setLastRegistered({
+        participantName: formData.name,
+        cardNumber: formData.cardNumber,
+        balance: formData.initialBalance,
         operatorName: user?.name || 'Sistema'
       });
 
-      // Limpar formulário após sucesso
+      toast({
+        title: "Participante cadastrado!",
+        description: `${formData.name} foi cadastrado com sucesso.`,
+      });
+
+      // Limpar formulário
       setFormData({
         name: '',
         cardNumber: '',
         phone: '',
         initialBalance: 0,
       });
-
+    } catch (error: any) {
       toast({
-        title: "Sucesso!",
-        description: "Participante cadastrado com sucesso",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao cadastrar participante",
+        title: "Erro ao cadastrar",
+        description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  const generateRandomCardNumber = () => {
-    const randomNumber = Math.floor(Math.random() * 9000) + 1000;
-    setFormData(prev => ({ ...prev, cardNumber: randomNumber.toString() }));
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
   };
 
   return (
@@ -109,91 +95,107 @@ const ParticipantForm: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nome do Participante (opcional)</Label>
-            <Input
-              id="name"
-              placeholder="Digite o nome completo"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="mt-1"
-              disabled={isSubmitting}
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Nome Completo *</Label>
+              <Input
+                id="name"
+                placeholder="Digite o nome completo"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="mt-1"
+                required
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="phone">Telefone (opcional)</Label>
-            <Input
-              id="phone"
-              placeholder="(11) 99999-9999"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              className="mt-1"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="cardNumber">Número do Cartão/Pulseira *</Label>
-            <div className="flex gap-2 mt-1">
+            <div>
+              <Label htmlFor="cardNumber">Número do Cartão/Pulseira *</Label>
               <Input
                 id="cardNumber"
-                placeholder="Digite o número do cartão"
+                placeholder="Ex: 001, 002, 003..."
                 value={formData.cardNumber}
                 onChange={(e) => setFormData(prev => ({ ...prev, cardNumber: e.target.value }))}
-                className="flex-1"
+                className="mt-1"
                 required
-                disabled={isSubmitting}
               />
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={generateRandomCardNumber}
-                disabled={isSubmitting}
-              >
-                Gerar
-              </Button>
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="initialBalance">Saldo Inicial</Label>
-            <Input
-              id="initialBalance"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
-              value={formData.initialBalance}
-              onChange={(e) => setFormData(prev => ({ ...prev, initialBalance: parseFloat(e.target.value) || 0 }))}
-              className="mt-1"
-              disabled={isSubmitting}
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Valor carregado no cartão no momento do cadastro
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="phone">Telefone (Opcional)</Label>
+              <Input
+                id="phone"
+                placeholder="(11) 99999-9999"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="initialBalance">Valor Inicial *</Label>
+              <Input
+                id="initialBalance"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                value={formData.initialBalance}
+                onChange={(e) => setFormData(prev => ({ ...prev, initialBalance: parseFloat(e.target.value) || 0 }))}
+                className="mt-1"
+                required
+              />
+            </div>
           </div>
+
+          {/* Botões de Valores Rápidos */}
+          <div className="space-y-2">
+            <Label>Valores Rápidos</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {[10, 20, 50, 100, 200, 500].map((value) => (
+                <Button
+                  key={value}
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormData(prev => ({ ...prev, initialBalance: value }))}
+                  className="text-sm"
+                >
+                  R$ {value}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Resumo */}
+          {formData.name && formData.cardNumber && (
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-green-800 mb-2">Resumo do Cadastro</h3>
+                <div className="space-y-1 text-green-700">
+                  <p><span className="font-medium">Nome:</span> {formData.name}</p>
+                  <p><span className="font-medium">Cartão:</span> {formData.cardNumber}</p>
+                  <p><span className="font-medium">Telefone:</span> {formData.phone || 'Não informado'}</p>
+                  <p><span className="font-medium">Valor Inicial:</span> {formatCurrency(formData.initialBalance)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex gap-2">
             <Button 
               type="submit" 
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              disabled={isSubmitting}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Cadastrando...' : 'Cadastrar Participante'}
+              Cadastrar Participante
             </Button>
             
-            {lastCreatedParticipant && (
+            {lastRegistered && (
               <PrintReceipt
                 type="cadastro"
-                data={{
-                  participantName: lastCreatedParticipant.name,
-                  cardNumber: lastCreatedParticipant.cardNumber,
-                  balance: lastCreatedParticipant.balance,
-                  operatorName: lastCreatedParticipant.operatorName
-                }}
+                data={lastRegistered}
               />
             )}
           </div>

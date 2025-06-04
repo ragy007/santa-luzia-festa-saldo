@@ -1,53 +1,31 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
-import QRCodeScanner from '../components/QRCodeScanner';
-import BarcodeScanner from '../components/BarcodeScanner';
-import PrintReceipt from '../components/PrintReceipt';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '../contexts/LocalAppContext';
 import { useAuth } from '@/contexts/LocalAuthContext';
-import { ShoppingCart, Search, Minus, Plus, Receipt, Scan, Barcode } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+import { ShoppingCart, Search, AlertCircle, TrendingDown, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import PrintReceipt from '../components/PrintReceipt';
 
 const Consumo: React.FC = () => {
-  const { addTransaction, getParticipantByCard, participants, products, booths } = useApp();
+  const { addTransaction, getParticipantByCard, participants, transactions } = useApp();
   const { user } = useAuth();
+  const { booths } = useSettings();
   const [searchCard, setSearchCard] = useState('');
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
+  const [purchaseAmount, setPurchaseAmount] = useState(0);
   const [selectedBooth, setSelectedBooth] = useState('');
-  const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
-  const [customProduct, setCustomProduct] = useState({ name: '', price: 0 });
-  const [showQRScanner, setShowQRScanner] = useState(false);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [lastSale, setLastSale] = useState<any>(null);
+  const [items, setItems] = useState('');
+  const [lastPurchase, setLastPurchase] = useState<any>(null);
 
-  // Definir barraca automaticamente se o usuário for operador
-  useEffect(() => {
-    console.log('User:', user);
-    console.log('Available booths:', booths);
-    
-    if (user?.role === 'operator' && user.boothId) {
-      // Procurar a barraca pelo ID (user.boothId é o ID da barraca)
-      const userBooth = booths.find(b => b.id === user.boothId);
-      console.log('User booth found:', userBooth);
-      
-      if (userBooth) {
-        setSelectedBooth(userBooth.name);
-        console.log('Barraca selecionada para operador:', userBooth.name);
-      } else {
-        console.warn('Barraca do usuário não encontrada:', user.boothId);
-      }
-    }
-  }, [user, booths]);
-
-  // Filtrar barracas baseado no usuário
-  const availableBooths = user?.role === 'admin' 
-    ? booths.filter(b => b.isActive)
-    : booths.filter(b => b.isActive && b.id === user?.boothId);
-
-  console.log('Available booths for user:', availableBooths);
+  // Usar o nome do usuário logado automaticamente
+  const operatorName = user?.name || 'Sistema';
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -76,121 +54,7 @@ const Consumo: React.FC = () => {
     }
   };
 
-  const handleQRCodeSearch = () => {
-    setShowQRScanner(true);
-  };
-
-  const handleBarcodeSearch = () => {
-    setShowBarcodeScanner(true);
-  };
-
-  const handleQRCodeScan = (cardNumber: string) => {
-    setSearchCard(cardNumber);
-    setShowQRScanner(false);
-    
-    const participant = getParticipantByCard(cardNumber);
-    if (participant) {
-      setSelectedParticipant(participant);
-      toast({
-        title: "Participante encontrado via QR Code!",
-        description: `${participant.name} - Saldo: ${formatCurrency(participant.balance)}`,
-      });
-    } else {
-      setSelectedParticipant(null);
-      toast({
-        title: "Participante não encontrado",
-        description: "QR Code não corresponde a nenhum participante cadastrado",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleBarcodeScan = (barcode: string) => {
-    setShowBarcodeScanner(false);
-    
-    // Buscar produto pelo código de barras
-    const product = products.find(p => p.id === barcode || p.name.toLowerCase().includes(barcode.toLowerCase()));
-    
-    if (product && product.booth === selectedBooth) {
-      addToCart(product);
-      toast({
-        title: "Produto encontrado!",
-        description: `${product.name} adicionado ao carrinho`,
-      });
-    } else {
-      toast({
-        title: "Produto não encontrado",
-        description: "Código de barras não corresponde a nenhum produto desta barraca",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addToCart = (product: any) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setCart([...cart, { product, quantity: 1 }]);
-    }
-    
-    toast({
-      title: "Produto adicionado",
-      description: `${product.name} foi adicionado ao carrinho`,
-    });
-  };
-
-  const addCustomProduct = () => {
-    if (!customProduct.name || customProduct.price <= 0) {
-      toast({
-        title: "Erro",
-        description: "Preencha o nome e preço do produto personalizado",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const product = {
-      id: `custom-${Date.now()}`,
-      name: customProduct.name,
-      price: customProduct.price,
-      booth: selectedBooth,
-      isActive: true,
-    };
-
-    addToCart(product);
-    setCustomProduct({ name: '', price: 0 });
-  };
-
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      setCart(cart.filter(item => item.product.id !== productId));
-    } else {
-      setCart(cart.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    }
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    toast({
-      title: "Carrinho limpo",
-      description: "Todos os produtos foram removidos do carrinho",
-    });
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const handleSale = () => {
+  const handlePurchase = () => {
     if (!selectedParticipant) {
       toast({
         title: "Erro",
@@ -200,10 +64,19 @@ const Consumo: React.FC = () => {
       return;
     }
 
-    if (cart.length === 0) {
+    if (purchaseAmount <= 0) {
       toast({
         title: "Erro",
-        description: "Adicione produtos ao carrinho",
+        description: "Valor da compra deve ser maior que zero",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedParticipant.balance < purchaseAmount) {
+      toast({
+        title: "Saldo insuficiente!",
+        description: `Saldo disponível: ${formatCurrency(selectedParticipant.balance)}`,
         variant: "destructive",
       });
       return;
@@ -218,52 +91,38 @@ const Consumo: React.FC = () => {
       return;
     }
 
-    const totalAmount = getTotalAmount();
-
-    if (selectedParticipant.balance < totalAmount) {
-      toast({
-        title: "Saldo Insuficiente",
-        description: `Saldo atual: ${formatCurrency(selectedParticipant.balance)}. Valor da compra: ${formatCurrency(totalAmount)}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Criar descrição da venda
-    const description = cart
-      .map(item => `${item.quantity}x ${item.product.name}`)
-      .join(', ');
-
     const previousBalance = selectedParticipant.balance;
 
     addTransaction({
       participantId: selectedParticipant.id,
       type: 'debit',
-      amount: totalAmount,
-      description: description,
+      amount: purchaseAmount,
+      description: items || 'Compra na festa',
       booth: selectedBooth,
-      operatorName: user?.name || 'Sistema',
+      operatorName: operatorName,
     });
 
     // Salvar dados para impressão
-    setLastSale({
+    setLastPurchase({
       participantName: selectedParticipant.name,
       cardNumber: selectedParticipant.cardNumber,
-      amount: totalAmount,
-      balance: previousBalance - totalAmount,
-      items: description,
-      operatorName: user?.name || 'Sistema'
+      amount: purchaseAmount,
+      balance: previousBalance - purchaseAmount,
+      items: items || 'Compra na festa',
+      operatorName: operatorName
     });
 
     toast({
-      title: "Venda realizada!",
-      description: `${formatCurrency(totalAmount)} debitado do cartão de ${selectedParticipant.name}`,
+      title: "Venda registrada!",
+      description: `${formatCurrency(purchaseAmount)} debitado do cartão de ${selectedParticipant.name}`,
     });
 
     // Limpar formulário
-    setCart([]);
+    setPurchaseAmount(0);
+    setItems('');
     setSearchCard('');
     setSelectedParticipant(null);
+    setSelectedBooth('');
   };
 
   const formatCurrency = (value: number) => {
@@ -273,40 +132,57 @@ const Consumo: React.FC = () => {
     }).format(value);
   };
 
-  const boothProducts = products.filter(p => p.booth === selectedBooth && p.isActive);
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString('pt-BR');
+  };
+
+  const recentSales = transactions
+    .filter(t => t.type === 'debit')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 10);
+
+  const totalSales = transactions
+    .filter(t => t.type === 'debit')
+    .reduce((total, t) => total + t.amount, 0);
+
+  const todaySales = transactions
+    .filter(t => t.type === 'debit' && 
+      new Date(t.timestamp).toDateString() === new Date().toDateString()
+    )
+    .reduce((total, t) => total + t.amount, 0);
 
   return (
-    <Layout title="Registro de Consumo">
+    <Layout title="Registrar Vendas">
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            🛒 Registro de Consumo
+            🛍️ Registrar Vendas
           </h1>
           <p className="text-gray-600">
-            Registre vendas e debite valores dos cartões
+            Registre vendas e débitos dos participantes
           </p>
-          {user?.role === 'operator' && user.boothId && (
-            <p className="text-sm text-blue-600 font-medium mt-2">
-              Operador: {user.name} - Barraca: {booths.find(b => b.id === user.boothId)?.name || user.boothId}
-            </p>
-          )}
+          <p className="text-sm text-blue-600 font-medium mt-1">
+            Operador: {operatorName}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Busca e Seleção */}
-          <div className="space-y-6">
-            {/* Busca de Participante */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulário de Venda */}
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Search className="h-5 w-5 mr-2 text-blue-600" />
-                  Buscar Participante
+                  <ShoppingCart className="h-5 w-5 mr-2 text-purple-600" />
+                  Nova Venda
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
+              <CardContent className="space-y-6">
+                {/* Busca de Participante */}
+                <div>
+                  <Label htmlFor="searchCard">Buscar Cartão</Label>
+                  <div className="flex gap-2 mt-1">
                     <Input
+                      id="searchCard"
                       placeholder="Digite o número do cartão"
                       value={searchCard}
                       onChange={(e) => setSearchCard(e.target.value)}
@@ -316,228 +192,199 @@ const Consumo: React.FC = () => {
                     <Button onClick={handleSearch} variant="outline">
                       <Search className="h-4 w-4" />
                     </Button>
-                    <Button onClick={handleQRCodeSearch} variant="outline">
-                      <Scan className="h-4 w-4" />
-                    </Button>
                   </div>
+                </div>
 
-                  {selectedParticipant && (
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-blue-800 mb-2">Participante Selecionado</h3>
-                        <div className="space-y-1">
-                          <p><span className="font-medium">Nome:</span> {selectedParticipant.name}</p>
-                          <p><span className="font-medium">Cartão:</span> {selectedParticipant.cardNumber}</p>
-                          <p><span className="font-medium">Saldo:</span> <span className="text-green-600 font-bold">{formatCurrency(selectedParticipant.balance)}</span></p>
+                {/* Informações do Participante */}
+                {selectedParticipant && (
+                  <Card className={`${
+                    selectedParticipant.balance >= purchaseAmount ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
+                  }`}>
+                    <CardContent className="p-4">
+                      <h3 className={`font-semibold mb-2 ${
+                        selectedParticipant.balance >= purchaseAmount ? 'text-blue-800' : 'text-red-800'
+                      }`}>
+                        Participante Selecionado
+                      </h3>
+                      <div className="space-y-1">
+                        <p><span className="font-medium">Nome:</span> {selectedParticipant.name}</p>
+                        <p><span className="font-medium">Cartão:</span> {selectedParticipant.cardNumber}</p>
+                        <p><span className="font-medium">Saldo Atual:</span> 
+                          <span className={`font-bold ml-1 ${
+                            selectedParticipant.balance >= purchaseAmount ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(selectedParticipant.balance)}
+                          </span>
+                        </p>
+                        {purchaseAmount > 0 && (
+                          <p><span className="font-medium">Saldo Após Compra:</span> 
+                            <span className={`font-bold ml-1 ${
+                              selectedParticipant.balance >= purchaseAmount ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {formatCurrency(selectedParticipant.balance - purchaseAmount)}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                      {selectedParticipant.balance < purchaseAmount && purchaseAmount > 0 && (
+                        <div className="flex items-center mt-2 p-2 bg-red-100 rounded">
+                          <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+                          <span className="text-red-700 text-sm">Saldo insuficiente para esta compra</span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Formulário de Venda */}
+                {selectedParticipant && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="purchaseAmount">Valor da Venda *</Label>
+                        <Input
+                          id="purchaseAmount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="0,00"
+                          value={purchaseAmount}
+                          onChange={(e) => setPurchaseAmount(parseFloat(e.target.value) || 0)}
+                          className="mt-1"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="booth">Barraca *</Label>
+                        <Select value={selectedBooth} onValueChange={setSelectedBooth}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Selecione a barraca" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {booths.filter(b => b.isActive).map((booth) => (
+                              <SelectItem key={booth.id} value={booth.name}>
+                                {booth.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="items">Itens/Descrição (Opcional)</Label>
+                      <Input
+                        id="items"
+                        placeholder="Ex: 2x Pastel, 1x Refrigerante"
+                        value={items}
+                        onChange={(e) => setItems(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    {/* Botões de Valores Rápidos */}
+                    <div className="space-y-2">
+                      <Label>Valores Rápidos</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[5, 10, 15, 20, 25, 30].map((value) => (
+                          <Button
+                            key={value}
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPurchaseAmount(value)}
+                            className="text-sm"
+                          >
+                            R$ {value}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handlePurchase} 
+                        className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
+                        disabled={!purchaseAmount || !selectedBooth || selectedParticipant.balance < purchaseAmount}
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Registrar Venda de {formatCurrency(purchaseAmount)}
+                      </Button>
+                      
+                      {lastPurchase && (
+                        <PrintReceipt
+                          type="consumo"
+                          data={lastPurchase}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Resumo e Histórico */}
+          <div className="space-y-6">
+            {/* Estatísticas */}
+            <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+              <CardHeader>
+                <CardTitle className="flex items-center text-purple-800">
+                  <TrendingDown className="h-5 w-5 mr-2" />
+                  Resumo de Vendas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-purple-700">Total Vendido:</span>
+                    <span className="font-bold text-purple-800">{formatCurrency(totalSales)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-700">Vendas Hoje:</span>
+                    <span className="font-bold text-purple-800">{formatCurrency(todaySales)}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Seleção de Barraca - Só para Admin */}
-            {user?.role === 'admin' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selecionar Barraca</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-2">
-                    {booths.filter(b => b.isActive).map((booth) => (
-                      <Button
-                        key={booth.id}
-                        variant={selectedBooth === booth.name ? "default" : "outline"}
-                        className="justify-start h-12"
-                        onClick={() => setSelectedBooth(booth.name)}
-                      >
-                        {booth.name}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Status da Barraca para Operadores */}
-            {user?.role === 'operator' && selectedBooth && (
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-green-800 mb-1">Barraca Ativa</h3>
-                  <p className="text-green-700">{selectedBooth}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Produtos */}
-            {selectedBooth && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Produtos - {selectedBooth}</span>
-                    <Button
-                      onClick={handleBarcodeSearch}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Barcode className="h-4 w-4 mr-2" />
-                      Código de Barras
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-2">
-                    {boothProducts.length > 0 ? (
-                      boothProducts.map((product) => (
-                        <Button
-                          key={product.id}
-                          onClick={() => addToCart(product)}
-                          variant="outline"
-                          className="flex items-center justify-between p-4 h-auto"
-                        >
-                          <div className="text-left">
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-gray-500">{formatCurrency(product.price)}</p>
-                          </div>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">
-                        Nenhum produto cadastrado para esta barraca
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Produto Personalizado */}
-                  <div className="mt-6 pt-4 border-t">
-                    <h4 className="font-medium mb-3">Produto Personalizado</h4>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Nome do produto"
-                        value={customProduct.name}
-                        onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          placeholder="Preço"
-                          value={customProduct.price || ''}
-                          onChange={(e) => setCustomProduct(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                          className="flex-1"
-                        />
-                        <Button onClick={addCustomProduct} variant="outline">
-                          Adicionar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Carrinho */}
-          <div>
+            {/* Vendas Recentes */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <ShoppingCart className="h-5 w-5 mr-2 text-orange-600" />
-                    Carrinho de Compras
-                  </div>
-                  {cart.length > 0 && (
-                    <Button onClick={clearCart} variant="outline" size="sm">
-                      Limpar
-                    </Button>
-                  )}
+                <CardTitle className="flex items-center">
+                  <History className="h-5 w-5 mr-2 text-orange-600" />
+                  Vendas Recentes
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {cart.length > 0 ? (
-                    <>
-                      {cart.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1">
-                            <p className="font-medium">{item.product.name}</p>
-                            <p className="text-sm text-gray-500">{formatCurrency(item.product.price)} cada</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              size="sm"
-                              variant="outline"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            <Button
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              size="sm"
-                              variant="outline"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <div className="text-right ml-4">
-                            <p className="font-bold">{formatCurrency(item.product.price * item.quantity)}</p>
-                          </div>
+                <div className="space-y-3">
+                  {recentSales.map((sale) => {
+                    const participant = participants.find(p => p.id === sale.participantId);
+                    return (
+                      <div key={sale.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div>
+                          <p className="font-medium text-gray-900">{participant?.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {sale.booth} • {formatTime(sale.timestamp)}
+                          </p>
+                          <p className="text-xs text-gray-400">{sale.description}</p>
                         </div>
-                      ))}
-
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between text-lg font-bold">
-                          <span>Total:</span>
-                          <span className="text-green-600">{formatCurrency(getTotalAmount())}</span>
+                        <div className="text-right">
+                          <p className="font-bold text-red-600">-{formatCurrency(sale.amount)}</p>
                         </div>
                       </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleSale}
-                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                          disabled={!selectedParticipant || !selectedBooth}
-                        >
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Finalizar Venda - {formatCurrency(getTotalAmount())}
-                        </Button>
-                        
-                        {lastSale && (
-                          <PrintReceipt
-                            type="consumo"
-                            data={lastSale}
-                          />
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Carrinho vazio</p>
-                      <p className="text-sm">Selecione uma barraca e adicione produtos</p>
-                    </div>
+                    );
+                  })}
+                  {recentSales.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      Nenhuma venda registrada ainda
+                    </p>
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        <QRCodeScanner
-          isOpen={showQRScanner}
-          onScan={handleQRCodeScan}
-          onClose={() => setShowQRScanner(false)}
-        />
-
-        <BarcodeScanner
-          isOpen={showBarcodeScanner}
-          onScan={handleBarcodeScan}
-          onClose={() => setShowBarcodeScanner(false)}
-        />
       </div>
     </Layout>
   );
