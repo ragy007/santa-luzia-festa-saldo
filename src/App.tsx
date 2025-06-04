@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { AuthProvider } from "./contexts/LocalAuthContext";
 import { SyncedAppProvider } from "./contexts/SyncedAppContext";
+import { BackendSyncProvider } from "./contexts/BackendSyncContext";
 import LocalProtectedRoute from "./components/LocalProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Cadastro from "./pages/Cadastro";
@@ -32,94 +33,96 @@ const App = () => (
       <SettingsProvider>
         <AuthProvider>
           <SyncedAppProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/landing" element={<LandingPage />} />
-                <Route path="/auth" element={<LocalAuth />} />
-                <Route path="/" element={<Navigate to="/auth" replace />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Dashboard />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/cadastro"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Cadastro />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/recarga"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Recarga />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consumo"
-                  element={
-                    <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
-                      <Consumo />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/historico"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Historico />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/relatorios"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Relatorios />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/encerramento"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Encerramento />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <LocalProtectedRoute requireAdmin>
-                      <Settings />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/sincronizacao"
-                  element={
-                    <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
-                      <Sincronizacao />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/guia"
-                  element={
-                    <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
-                      <GuiaUso />
-                    </LocalProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <BackendSyncProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/landing" element={<LandingPage />} />
+                  <Route path="/auth" element={<LocalAuth />} />
+                  <Route path="/" element={<Navigate to="/auth" replace />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Dashboard />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cadastro"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Cadastro />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/recarga"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Recarga />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consumo"
+                    element={
+                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                        <Consumo />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/historico"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Historico />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/relatorios"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Relatorios />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/encerramento"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Encerramento />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <LocalProtectedRoute requireAdmin>
+                        <Settings />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/sincronizacao"
+                    element={
+                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                        <Sincronizacao />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/guia"
+                    element={
+                      <LocalProtectedRoute allowedRoles={['admin', 'operator']}>
+                        <GuiaUso />
+                      </LocalProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </BackendSyncProvider>
           </SyncedAppProvider>
         </AuthProvider>
       </SettingsProvider>
