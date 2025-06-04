@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { file-excel, download } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { useApp } from '../contexts/LocalAppContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -185,7 +185,7 @@ const ExportData: React.FC<ExportDataProps> = ({ type }) => {
   };
 
   const getIcon = () => {
-    return type === 'full-backup' ? download : file-excel;
+    return type === 'full-backup' ? Download : FileText;
   };
 
   const Icon = getIcon();
