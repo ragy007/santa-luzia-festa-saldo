@@ -3,10 +3,12 @@ import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/LocalAppContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { Users, CreditCard, ShoppingCart, DollarSign, TrendingUp, Clock, Power, AlertTriangle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { participants, transactions, getTotalSales, getTotalActiveBalance, booths, settings, isFestivalActive } = useApp();
+  const { participants, transactions, getTotalSales, getTotalActiveBalance, booths } = useApp();
+  const { settings } = useSettings();
 
   const totalParticipants = participants.length;
   const activeParticipants = participants.filter(p => p.isActive).length;
@@ -34,12 +36,22 @@ const Dashboard: React.FC = () => {
   };
 
   const getFestivalStatus = () => {
-    const isActive = isFestivalActive();
+    if (!settings) {
+      return {
+        status: 'SEM CONFIGURAÇÃO',
+        color: 'text-gray-600',
+        bgColor: 'from-gray-50 to-gray-100',
+        borderColor: 'border-gray-200',
+        icon: AlertTriangle,
+        message: 'Configure a festa nas configurações para começar.'
+      };
+    }
+
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toTimeString().slice(0, 5);
 
-    if (!settings?.isActive) {
+    if (!settings.isActive) {
       return {
         status: 'DESATIVADA',
         color: 'text-red-600',
@@ -102,10 +114,10 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="text-center py-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {settings?.title || 'Festa Comunitária 2024'}
+            {settings?.title || settings?.name || 'Sistema de Festa'}
           </h1>
           <p className="text-lg text-gray-600">
-            {settings?.subtitle || 'Centro Social da Paróquia Santa Luzia'}
+            {settings?.subtitle || settings?.location || 'Configurar nas configurações'}
           </p>
           {settings?.religiousMessage && (
             <p className="text-sm text-blue-600 mt-2">

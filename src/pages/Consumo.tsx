@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +22,7 @@ const Consumo: React.FC = () => {
   const [selectedBooth, setSelectedBooth] = useState('');
   const [items, setItems] = useState('');
   const [lastPurchase, setLastPurchase] = useState<any>(null);
+  const [showPrintButton, setShowPrintButton] = useState(false);
 
   // Usar o nome do usuário logado automaticamente
   const operatorName = user?.name || 'Sistema';
@@ -111,6 +111,9 @@ const Consumo: React.FC = () => {
       items: items || 'Compra na festa',
       operatorName: operatorName
     });
+
+    // Mostrar botão de impressão
+    setShowPrintButton(true);
 
     toast({
       title: "Venda registrada!",
@@ -301,23 +304,31 @@ const Consumo: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handlePurchase} 
-                        className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
-                        disabled={!purchaseAmount || !selectedBooth || selectedParticipant.balance < purchaseAmount}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Registrar Venda de {formatCurrency(purchaseAmount)}
-                      </Button>
-                      
-                      {lastPurchase && (
-                        <PrintReceipt
-                          type="consumo"
-                          data={lastPurchase}
-                        />
-                      )}
-                    </div>
+                    <Button 
+                      onClick={handlePurchase} 
+                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
+                      disabled={!purchaseAmount || !selectedBooth || selectedParticipant.balance < purchaseAmount}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Registrar Venda de {formatCurrency(purchaseAmount)}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Botão de Impressão - só aparece após a venda */}
+                {showPrintButton && lastPurchase && (
+                  <div className="flex justify-center pt-4 border-t">
+                    <PrintReceipt
+                      type="consumo"
+                      data={lastPurchase}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowPrintButton(false)}
+                      className="ml-2"
+                    >
+                      Nova Venda
+                    </Button>
                   </div>
                 )}
               </CardContent>

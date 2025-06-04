@@ -17,6 +17,7 @@ const Recarga: React.FC = () => {
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [rechargeAmount, setRechargeAmount] = useState(0);
   const [lastRecharge, setLastRecharge] = useState<any>(null);
+  const [showPrintButton, setShowPrintButton] = useState(false);
 
   // Usar o nome do usuário logado automaticamente
   const operatorName = user?.name || 'Sistema';
@@ -85,6 +86,9 @@ const Recarga: React.FC = () => {
       balance: previousBalance + rechargeAmount,
       operatorName: operatorName
     });
+
+    // Mostrar botão de impressão
+    setShowPrintButton(true);
 
     toast({
       title: "Recarga realizada!",
@@ -210,23 +214,31 @@ const Recarga: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleRecharge} 
-                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                        disabled={!rechargeAmount}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Realizar Recarga de {formatCurrency(rechargeAmount)}
-                      </Button>
-                      
-                      {lastRecharge && (
-                        <PrintReceipt
-                          type="recarga"
-                          data={lastRecharge}
-                        />
-                      )}
-                    </div>
+                    <Button 
+                      onClick={handleRecharge} 
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                      disabled={!rechargeAmount}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Realizar Recarga de {formatCurrency(rechargeAmount)}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Botão de Impressão - só aparece após a recarga */}
+                {showPrintButton && lastRecharge && (
+                  <div className="flex justify-center pt-4 border-t">
+                    <PrintReceipt
+                      type="recarga"
+                      data={lastRecharge}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowPrintButton(false)}
+                      className="ml-2"
+                    >
+                      Nova Recarga
+                    </Button>
                   </div>
                 )}
               </CardContent>
