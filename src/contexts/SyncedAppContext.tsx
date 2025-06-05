@@ -26,12 +26,12 @@ const SyncIntegration: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 export const SyncedAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <SyncProvider>
-      <AppProvider>
+    <AppProvider>
+      <SyncProvider>
         <SyncIntegration>
           {children}
         </SyncIntegration>
-      </AppProvider>
-    </SyncProvider>
+      </SyncProvider>
+    </AppProvider>
   );
 };
