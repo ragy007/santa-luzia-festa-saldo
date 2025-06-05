@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { SyncedAppProvider } from './contexts/SyncedAppContext';
 import { AuthProvider } from './contexts/LocalAuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import LandingPage from './pages/LandingPage';
 import LocalAuth from './pages/LocalAuth';
 import Dashboard from './pages/Dashboard';
 import Cadastro from './pages/Cadastro';
@@ -14,6 +15,8 @@ import Relatorios from './pages/Relatorios';
 import Encerramento from './pages/Encerramento';
 import Settings from './pages/Settings';
 import Sincronizacao from './pages/Sincronizacao';
+import GuiaUso from './pages/GuiaUso';
+import Documentacao from './pages/Documentacao';
 import { useAuth } from './contexts/LocalAuthContext';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -46,9 +49,12 @@ function App() {
           <Router>
             <div className="min-h-screen bg-gray-50">
               <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/guia" element={<GuiaUso />} />
+                <Route path="/documentacao" element={<Documentacao />} />
                 <Route path="/login" element={<LocalAuth />} />
                 <Route
-                  path="/"
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
                       <Dashboard />

@@ -40,7 +40,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     navigate('/login');
   };
 
-  const navigationItems = [
+  // Diferentes navegações para admin e operador
+  const adminNavigationItems = [
     { path: '/', icon: Home, label: 'Dashboard', adminOnly: false },
     { path: '/cadastro', icon: UserPlus, label: 'Cadastro', adminOnly: false },
     { path: '/consumo', icon: ShoppingCart, label: 'Consumo', adminOnly: false },
@@ -51,6 +52,15 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     { path: '/settings', icon: Settings, label: 'Configurações', adminOnly: true },
     { path: '/sincronizacao', icon: Wifi, label: 'Sincronização', adminOnly: false },
   ];
+
+  const operatorNavigationItems = [
+    { path: '/consumo', icon: ShoppingCart, label: 'Consumo', adminOnly: false },
+    { path: '/consulta-saldo', icon: Eye, label: 'Consulta Saldo', adminOnly: false },
+    { path: '/sincronizacao', icon: Wifi, label: 'Sincronização', adminOnly: false },
+  ];
+
+  // Escolher navegação baseada no papel do usuário
+  const navigationItems = isAdmin ? adminNavigationItems : operatorNavigationItems;
 
   const filteredNavigation = navigationItems.filter(item => 
     !item.adminOnly || isAdmin
@@ -99,14 +109,12 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
       </div>
       
       <div className="absolute bottom-0 left-0 right-0 p-6 border-t">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-            <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'Administrador' : 'Operador'}</p>
-            {user?.boothName && (
-              <p className="text-xs text-blue-600">{user.boothName}</p>
-            )}
-          </div>
+        <div className="mb-4">
+          <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+          <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'Administrador' : 'Operador'}</p>
+          {user?.boothName && (
+            <p className="text-xs text-blue-600">{user.boothName}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Button
@@ -159,7 +167,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="font-semibold text-gray-800">{title}</h1>
-          <div className="w-10" /> {/* Spacer */}
+          <div className="w-10" />
         </div>
         
         {/* Page Content */}

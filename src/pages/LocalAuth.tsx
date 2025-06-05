@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/LocalAuthContext';
+import { useSync } from '@/contexts/LocalSyncContext';
 import { toast } from '@/hooks/use-toast';
+import { Wifi, WifiOff, Server } from 'lucide-react';
 
 const LocalAuth: React.FC = () => {
   const [credentials, setCredentials] = useState({
@@ -14,8 +17,13 @@ const LocalAuth: React.FC = () => {
     password: '123456'
   });
   const [loading, setLoading] = useState(false);
+  const [connectToServer, setConnectToServer] = useState(false);
+  const [serverUrl, setServerUrl] = useState('');
+  const [syncLoading, setSyncLoading] = useState(false);
+  
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
+  const { isConnected, connectToServer: connectSync, startServer, isServer } = useSync();
 
   // Redirecionar se já estiver logado
   useEffect(() => {
@@ -27,6 +35,34 @@ const LocalAuth: React.FC = () => {
       }
     }
   }, [user, navigate]);
+
+  const handleServerConnection = async () => {
+    if (!serverUrl.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite o endereço do servidor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSyncLoading(true);
+    try {
+      await connectSync(serverUrl.trim());
+      toast({
+        title: "Conectado!",
+        description: "Conectado ao servidor com sucesso. Dados sincronizados!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor. Verifique o endereço.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,6 +108,81 @@ const LocalAuth: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🎉 Festa Comunitária</h1>
           <p className="text-gray-600">Sistema de Gestão Local</p>
         </div>
+
+        {/* Sincronização */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              Sincronização de Rede
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="connect-server"
+                checked={connectToServer}
+                onCheckedChange={setConnectToServer}
+              />
+              <Label htmlFor="connect-server">Conectar a um servidor</Label>
+            </div>
+
+            {connectToServer && (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="server-url">Endereço do Servidor</Label>
+                  <Input
+                    id="server-url"
+                    placeholder="http://192.168.1.100:3001"
+                    value={serverUrl}
+                    onChange={(e) => setServerUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Digite o IP do dispositivo administrador (ex: http://192.168.1.100:3001)
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleServerConnection}
+                  disabled={syncLoading}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {syncLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <Wifi className="h-4 w-4 mr-2" />
+                      Conectar ao Servidor
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Status da conexão */}
+            <div className="flex items-center gap-2 text-sm">
+              {isConnected ? (
+                <>
+                  <Wifi className="h-4 w-4 text-green-600" />
+                  <span className="text-green-600">Conectado ao servidor</span>
+                </>
+              ) : isServer ? (
+                <>
+                  <Server className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-600">Funcionando como servidor</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-500">Modo offline</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -128,7 +239,7 @@ const LocalAuth: React.FC = () => {
               <h4 className="font-medium text-blue-900 mb-2">💾 Sistema Local</h4>
               <p className="text-sm text-blue-800">
                 Todos os dados são salvos localmente no seu navegador. 
-                Não há necessidade de conexão com internet após o carregamento inicial.
+                Conecte-se a um servidor para sincronizar com outros dispositivos.
               </p>
             </div>
           </CardContent>

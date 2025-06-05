@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSettings } from '../contexts/SettingsContext';
 import { useApp } from '../contexts/LocalAppContext';
-import { Save, Power, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { Save, Power, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const SettingsGeneral: React.FC = () => {
@@ -48,7 +48,12 @@ const SettingsGeneral: React.FC = () => {
     });
   }, [settings]);
 
-  const handleSave = () => {
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     try {
       updateSettings(formData);
       toast({
@@ -83,7 +88,12 @@ const SettingsGeneral: React.FC = () => {
     }
   };
 
-  const handleNewFestival = () => {
+  const handleNewFestival = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     clearAllData();
     const today = new Date().toISOString().split('T')[0];
     const resetData = {
@@ -100,7 +110,12 @@ const SettingsGeneral: React.FC = () => {
     });
   };
 
-  const handleClearData = () => {
+  const handleClearData = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     clearAllData();
     toast({
       title: "🗑️ Dados limpos!",
@@ -251,17 +266,28 @@ const SettingsGeneral: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Botão Salvar */}
-      <Button onClick={handleSave} className="w-full" size="lg">
-        <Save className="h-4 w-4 mr-2" />
-        Salvar Todas as Configurações
-      </Button>
+      {/* Botão Salvar Principal */}
+      <div className="flex justify-center">
+        <Button 
+          onClick={handleSave} 
+          className="px-8 py-3" 
+          size="lg"
+          type="button"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          Salvar Todas as Configurações
+        </Button>
+      </div>
 
       {/* Ações Especiais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+            <Button 
+              variant="outline" 
+              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+              type="button"
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Nova Festa
             </Button>
@@ -276,7 +302,10 @@ const SettingsGeneral: React.FC = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleNewFestival} className="bg-orange-600 hover:bg-orange-700">
+              <AlertDialogAction 
+                onClick={handleNewFestival} 
+                className="bg-orange-600 hover:bg-orange-700"
+              >
                 Criar Nova Festa
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -285,7 +314,11 @@ const SettingsGeneral: React.FC = () => {
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+            <Button 
+              variant="outline" 
+              className="border-red-300 text-red-700 hover:bg-red-50"
+              type="button"
+            >
               <Trash2 className="h-4 w-4 mr-2" />
               Limpar Dados
             </Button>
@@ -300,7 +333,10 @@ const SettingsGeneral: React.FC = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearData} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogAction 
+                onClick={handleClearData} 
+                className="bg-red-600 hover:bg-red-700"
+              >
                 Limpar Dados
               </AlertDialogAction>
             </AlertDialogFooter>
