@@ -3,7 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { SyncedAppProvider } from './contexts/SyncedAppContext';
 import { AuthProvider } from './contexts/LocalAuthContext';
-import LoginPage from './pages/LoginPage';
+import LocalAuth from './pages/LocalAuth';
 import Dashboard from './pages/Dashboard';
 import Cadastro from './pages/Cadastro';
 import Consumo from './pages/Consumo';
@@ -44,7 +44,7 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50">
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login" element={<LocalAuth />} />
               <Route
                 path="/"
                 element={
