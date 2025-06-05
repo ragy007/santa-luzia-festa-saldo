@@ -1,13 +1,12 @@
+
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '../contexts/LocalAppContext';
 import { useAuth } from '@/contexts/LocalAuthContext';
-import { useSettings } from '../contexts/SettingsContext';
 import { ShoppingCart, Search, AlertCircle, TrendingDown, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import PrintReceipt from '../components/PrintReceipt';
@@ -15,17 +14,16 @@ import PrintReceipt from '../components/PrintReceipt';
 const Consumo: React.FC = () => {
   const { addTransaction, getParticipantByCard, participants, transactions } = useApp();
   const { user } = useAuth();
-  const { booths } = useSettings();
   const [searchCard, setSearchCard] = useState('');
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [purchaseAmount, setPurchaseAmount] = useState(0);
-  const [selectedBooth, setSelectedBooth] = useState('');
   const [items, setItems] = useState('');
   const [lastPurchase, setLastPurchase] = useState<any>(null);
   const [showPrintButton, setShowPrintButton] = useState(false);
 
   // Usar o nome do usuário logado automaticamente
   const operatorName = user?.name || 'Sistema';
+  const operatorBooth = user?.boothName || 'Sistema';
 
   const handleSearch = () => {
     if (!searchCard) {
@@ -82,15 +80,6 @@ const Consumo: React.FC = () => {
       return;
     }
 
-    if (!selectedBooth) {
-      toast({
-        title: "Erro",
-        description: "Selecione uma barraca",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const previousBalance = selectedParticipant.balance;
 
     addTransaction({
@@ -98,7 +87,7 @@ const Consumo: React.FC = () => {
       type: 'debit',
       amount: purchaseAmount,
       description: items || 'Compra na festa',
-      booth: selectedBooth,
+      booth: operatorBooth,
       operatorName: operatorName,
     });
 
@@ -109,7 +98,8 @@ const Consumo: React.FC = () => {
       amount: purchaseAmount,
       balance: previousBalance - purchaseAmount,
       items: items || 'Compra na festa',
-      operatorName: operatorName
+      operatorName: operatorName,
+      booth: operatorBooth
     });
 
     // Mostrar botão de impressão
@@ -125,7 +115,6 @@ const Consumo: React.FC = () => {
     setItems('');
     setSearchCard('');
     setSelectedParticipant(null);
-    setSelectedBooth('');
   };
 
   const formatCurrency = (value: number) => {
@@ -139,19 +128,19 @@ const Consumo: React.FC = () => {
     return new Date(timestamp).toLocaleString('pt-BR');
   };
 
-  const recentSales = transactions
-    .filter(t => t.type === 'debit')
+  // Filtrar vendas apenas da barraca do operador (se for operador)
+  const boothSales = user?.role === 'operator' 
+    ? transactions.filter(t => t.type === 'debit' && t.booth === operatorBooth)
+    : transactions.filter(t => t.type === 'debit');
+
+  const recentSales = boothSales
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 10);
 
-  const totalSales = transactions
-    .filter(t => t.type === 'debit')
-    .reduce((total, t) => total + t.amount, 0);
+  const totalSales = boothSales.reduce((total, t) => total + t.amount, 0);
 
-  const todaySales = transactions
-    .filter(t => t.type === 'debit' && 
-      new Date(t.timestamp).toDateString() === new Date().toDateString()
-    )
+  const todaySales = boothSales
+    .filter(t => new Date(t.timestamp).toDateString() === new Date().toDateString())
     .reduce((total, t) => total + t.amount, 0);
 
   return (
@@ -164,9 +153,12 @@ const Consumo: React.FC = () => {
           <p className="text-gray-600">
             Registre vendas e débitos dos participantes
           </p>
-          <p className="text-sm text-blue-600 font-medium mt-1">
-            Operador: {operatorName}
-          </p>
+          <div className="text-sm mt-2 space-y-1">
+            <p className="text-blue-600 font-medium">Operador: {operatorName}</p>
+            {user?.role === 'operator' && (
+              <p className="text-green-600 font-medium">Barraca: {operatorBooth}</p>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -176,7 +168,7 @@ const Consumo: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <ShoppingCart className="h-5 w-5 mr-2 text-purple-600" />
-                  Nova Venda
+                  Nova Venda - {operatorBooth}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -239,40 +231,22 @@ const Consumo: React.FC = () => {
                   </Card>
                 )}
 
-                {/* Formulário de Venda */}
+                {/* Formulário de Venda Simplificado */}
                 {selectedParticipant && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="purchaseAmount">Valor da Venda *</Label>
-                        <Input
-                          id="purchaseAmount"
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          placeholder="0,00"
-                          value={purchaseAmount}
-                          onChange={(e) => setPurchaseAmount(parseFloat(e.target.value) || 0)}
-                          className="mt-1"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="booth">Barraca *</Label>
-                        <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione a barraca" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {booths.filter(b => b.isActive).map((booth) => (
-                              <SelectItem key={booth.id} value={booth.name}>
-                                {booth.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div>
+                      <Label htmlFor="purchaseAmount">Valor da Venda *</Label>
+                      <Input
+                        id="purchaseAmount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0,00"
+                        value={purchaseAmount}
+                        onChange={(e) => setPurchaseAmount(parseFloat(e.target.value) || 0)}
+                        className="mt-1 text-lg"
+                        required
+                      />
                     </div>
 
                     <div>
@@ -306,10 +280,10 @@ const Consumo: React.FC = () => {
 
                     <Button 
                       onClick={handlePurchase} 
-                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
-                      disabled={!purchaseAmount || !selectedBooth || selectedParticipant.balance < purchaseAmount}
+                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-lg py-3"
+                      disabled={!purchaseAmount || selectedParticipant.balance < purchaseAmount}
                     >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      <ShoppingCart className="h-5 w-5 mr-2" />
                       Registrar Venda de {formatCurrency(purchaseAmount)}
                     </Button>
                   </div>
@@ -343,6 +317,9 @@ const Consumo: React.FC = () => {
                 <CardTitle className="flex items-center text-purple-800">
                   <TrendingDown className="h-5 w-5 mr-2" />
                   Resumo de Vendas
+                  {user?.role === 'operator' && (
+                    <span className="text-sm font-normal ml-2">({operatorBooth})</span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -365,6 +342,9 @@ const Consumo: React.FC = () => {
                 <CardTitle className="flex items-center">
                   <History className="h-5 w-5 mr-2 text-orange-600" />
                   Vendas Recentes
+                  {user?.role === 'operator' && (
+                    <span className="text-sm font-normal ml-2">({operatorBooth})</span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, Trash2, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useApp } from '@/contexts/LocalAppContext';
 import { generateUUID } from '@/utils/idGeneration';
 
 interface LocalUser {
@@ -17,11 +16,20 @@ interface LocalUser {
   name: string;
   role: 'admin' | 'operator';
   boothId?: string;
+  boothName?: string;
   isActive: boolean;
 }
 
+// Barracas disponíveis no sistema
+const availableBooths = [
+  { id: 'barraca-bebidas', name: 'Barraca de Bebidas' },
+  { id: 'barraca-comidas', name: 'Barraca de Comidas' },
+  { id: 'barraca-doces', name: 'Barraca de Doces' },
+  { id: 'barraca-salgados', name: 'Barraca de Salgados' },
+  { id: 'barraca-artesanato', name: 'Barraca de Artesanato' }
+];
+
 const LocalSettingsUsers: React.FC = () => {
-  const { booths } = useApp();
   const [users, setUsers] = useState<LocalUser[]>(() => {
     const savedUsers = localStorage.getItem('festa-users');
     return savedUsers ? JSON.parse(savedUsers) : [];
@@ -63,6 +71,8 @@ const LocalSettingsUsers: React.FC = () => {
       return;
     }
 
+    const selectedBooth = availableBooths.find(booth => booth.id === formData.boothId);
+
     const newUser: LocalUser = {
       id: generateUUID(),
       email: formData.email,
@@ -70,6 +80,7 @@ const LocalSettingsUsers: React.FC = () => {
       name: formData.name,
       role: formData.role,
       boothId: formData.boothId === 'none' ? undefined : formData.boothId,
+      boothName: selectedBooth?.name,
       isActive: true
     };
 
@@ -173,7 +184,7 @@ const LocalSettingsUsers: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="booth">Barraca (opcional)</Label>
+                  <Label htmlFor="booth">Barraca (obrigatório para operadores)</Label>
                   <Select 
                     value={formData.boothId} 
                     onValueChange={(value) => setFormData(prev => ({ ...prev, boothId: value }))}
@@ -183,7 +194,7 @@ const LocalSettingsUsers: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhuma barraca</SelectItem>
-                      {booths.map(booth => (
+                      {availableBooths.map(booth => (
                         <SelectItem key={booth.id} value={booth.id}>
                           {booth.name}
                         </SelectItem>
@@ -215,7 +226,7 @@ const LocalSettingsUsers: React.FC = () => {
                     <div className="text-sm text-gray-500">{user.email}</div>
                     <div className="text-xs text-gray-400">
                       {user.role === 'admin' ? 'Administrador' : 'Operador'} 
-                      {user.boothId && ` • ${booths.find(b => b.id === user.boothId)?.name}`}
+                      {user.boothName && ` • ${user.boothName}`}
                     </div>
                   </div>
                   <Button

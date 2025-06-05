@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { useApp } from './LocalAppContext';
 import { toast } from '@/hooks/use-toast';
 
 interface SyncContextType {
@@ -10,8 +11,6 @@ interface SyncContextType {
   startAsServer: () => void;
   connectToServer: (url: string) => void;
   disconnect: () => void;
-  broadcastData: (type: string, data: any) => void;
-  onDataReceived: (callback: (type: string, data: any) => void) => void;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -29,216 +28,276 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isConnected, setIsConnected] = useState(false);
   const [connectedClients, setConnectedClients] = useState(0);
   const [serverUrl, setServerUrl] = useState('');
-  
-  const wsClient = useRef<WebSocket | null>(null);
-  const dataCallback = useRef<((type: string, data: any) => void) | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const serverRef = useRef<any>(null);
+  const { participants, transactions, booths, addParticipant, addTransaction, updateParticipant } = useApp();
 
   const getLocalIP = () => {
     return `${window.location.hostname}:${window.location.port || '3000'}`;
   };
 
+  const broadcastToClients = (data: any) => {
+    if (serverRef.current && serverRef.current.clients) {
+      serverRef.current.clients.forEach((client: WebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(data));
+        }
+      });
+    }
+  };
+
   const startAsServer = () => {
     try {
+      console.log('Iniciando servidor de sincronização...');
+      
+      // Simular servidor WebSocket usando BroadcastChannel para comunicação local
+      const channel = new BroadcastChannel('festa-sync');
+      
+      serverRef.current = {
+        clients: new Set(),
+        channel: channel
+      };
+
+      channel.onmessage = (event) => {
+        const { type, data, clientId } = event.data;
+        
+        if (type === 'client-connect') {
+          serverRef.current.clients.add({ id: clientId, send: (msg: string) => {
+            channel.postMessage({ type: 'server-message', data: JSON.parse(msg), targetClient: clientId });
+          }});
+          setConnectedClients(serverRef.current.clients.size);
+          
+          // Enviar dados atuais para o novo cliente
+          channel.postMessage({
+            type: 'initial-sync',
+            data: { participants, transactions, booths },
+            targetClient: clientId
+          });
+          
+          toast({
+            title: "Cliente conectado!",
+            description: "Um dispositivo se conectou ao servidor",
+          });
+        }
+        
+        if (type === 'client-disconnect') {
+          serverRef.current.clients.forEach((client: any) => {
+            if (client.id === clientId) {
+              serverRef.current.clients.delete(client);
+            }
+          });
+          setConnectedClients(serverRef.current.clients.size);
+        }
+        
+        if (type === 'sync-data') {
+          // Processar dados recebidos do cliente
+          if (data.participants) {
+            data.participants.forEach((participant: any) => {
+              addParticipant(participant);
+            });
+          }
+          
+          if (data.transactions) {
+            data.transactions.forEach((transaction: any) => {
+              addTransaction(transaction);
+            });
+          }
+          
+          // Reenviar para outros clientes
+          broadcastToClients({ type: 'data-update', data });
+        }
+      };
+
       setIsServer(true);
       setIsConnected(true);
       setServerUrl(getLocalIP());
       
-      // Usar localStorage para sincronização entre abas
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key?.startsWith('festa-sync-')) {
-          const type = e.key.replace('festa-sync-', '');
-          const data = e.newValue ? JSON.parse(e.newValue) : null;
-          if (dataCallback.current && data) {
-            console.log('Dados recebidos via localStorage:', type, data);
-            dataCallback.current(type, data.data);
-          }
-        }
-      };
-
-      window.addEventListener('storage', handleStorageChange);
-      
       toast({
-        title: "🖥️ Servidor iniciado!",
-        description: `Outros dispositivos podem se conectar em: ${getLocalIP()}`,
+        title: "Servidor iniciado!",
+        description: "Outros dispositivos podem se conectar agora",
       });
-
-      return () => {
-        window.removeEventListener('storage', handleStorageChange);
-      };
+      
     } catch (error) {
       console.error('Erro ao iniciar servidor:', error);
       toast({
-        title: "❌ Erro ao iniciar servidor",
-        description: "Verifique as configurações de rede",
+        title: "Erro",
+        description: "Erro ao iniciar servidor de sincronização",
         variant: "destructive",
       });
     }
   };
 
   const connectToServer = (url: string) => {
-    if (!url.trim()) return;
-
     try {
-      // Primeiro tentar localStorage sync para teste local
-      if (url === getLocalIP() || url === 'localhost' || url.includes('localhost')) {
-        setIsConnected(true);
-        setServerUrl(url);
+      console.log('Conectando ao servidor:', url);
+      
+      if (url === 'localhost' || url === getLocalIP()) {
+        // Conectar via BroadcastChannel para teste local
+        const channel = new BroadcastChannel('festa-sync');
+        const clientId = Math.random().toString(36).substr(2, 9);
         
-        const handleStorageChange = (e: StorageEvent) => {
-          if (e.key?.startsWith('festa-sync-')) {
-            const type = e.key.replace('festa-sync-', '');
-            const data = e.newValue ? JSON.parse(e.newValue) : null;
-            if (dataCallback.current && data) {
-              console.log('Cliente recebeu dados via localStorage:', type, data);
-              dataCallback.current(type, data.data);
+        channel.onmessage = (event) => {
+          const { type, data, targetClient } = event.data;
+          
+          if ((targetClient && targetClient === clientId) || !targetClient) {
+            if (type === 'initial-sync') {
+              // Receber dados iniciais do servidor
+              if (data.participants) {
+                data.participants.forEach((participant: any) => addParticipant(participant));
+              }
+              if (data.transactions) {
+                data.transactions.forEach((transaction: any) => addTransaction(transaction));
+              }
+              
+              toast({
+                title: "Sincronização completa!",
+                description: "Dados sincronizados com o servidor",
+              });
+            }
+            
+            if (type === 'data-update') {
+              // Receber atualizações do servidor
+              if (data.participants) {
+                data.participants.forEach((participant: any) => addParticipant(participant));
+              }
+              if (data.transactions) {
+                data.transactions.forEach((transaction: any) => addTransaction(transaction));
+              }
             }
           }
         };
-
-        window.addEventListener('storage', handleStorageChange);
         
-        toast({
-          title: "✅ Conectado ao servidor!",
-          description: `Sincronizando com ${url}`,
-        });
-        return;
-      }
-
-      // Tentar WebSocket para conexões de rede
-      const wsUrl = url.startsWith('ws://') ? url : `ws://${url}`;
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        wsClient.current = ws;
+        // Notificar servidor da conexão
+        channel.postMessage({ type: 'client-connect', clientId });
+        
+        socketRef.current = {
+          close: () => {
+            channel.postMessage({ type: 'client-disconnect', clientId });
+            channel.close();
+          },
+          send: (data: string) => {
+            channel.postMessage({ type: 'sync-data', data: JSON.parse(data), clientId });
+          }
+        } as any;
+        
         setIsConnected(true);
         setServerUrl(url);
         
-        if (reconnectTimeout.current) {
-          clearTimeout(reconnectTimeout.current);
-          reconnectTimeout.current = null;
-        }
-        
         toast({
-          title: "✅ Conectado ao servidor!",
-          description: `Sincronizando com ${url}`,
+          title: "Conectado!",
+          description: "Conectado ao servidor de sincronização",
         });
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const { type, data } = JSON.parse(event.data);
-          if (dataCallback.current) {
-            console.log('Cliente recebeu dados via WebSocket:', type, data);
-            dataCallback.current(type, data);
+      } else {
+        // Tentar conexão WebSocket real
+        const ws = new WebSocket(`ws://${url}/sync`);
+        
+        ws.onopen = () => {
+          setIsConnected(true);
+          setServerUrl(url);
+          socketRef.current = ws;
+          
+          toast({
+            title: "Conectado!",
+            description: "Conectado ao servidor de sincronização",
+          });
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'sync' && data.participants) {
+              data.participants.forEach((participant: any) => addParticipant(participant));
+            }
+            
+            if (data.type === 'sync' && data.transactions) {
+              data.transactions.forEach((transaction: any) => addTransaction(transaction));
+            }
+          } catch (error) {
+            console.error('Erro ao processar mensagem:', error);
           }
-        } catch (error) {
-          console.error('Erro ao processar mensagem:', error);
-        }
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        wsClient.current = null;
+        };
         
-        toast({
-          title: "⚠️ Conexão perdida",
-          description: "Tentando reconectar em 5 segundos...",
-          variant: "destructive",
-        });
-
-        // Tentar reconectar automaticamente
-        reconnectTimeout.current = setTimeout(() => {
-          connectToServer(url);
-        }, 5000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('Erro WebSocket:', error);
-        toast({
-          title: "❌ Erro de conexão",
-          description: "Verifique o endereço do servidor",
-          variant: "destructive",
-        });
-      };
-
+        ws.onerror = () => {
+          toast({
+            title: "Erro de conexão",
+            description: "Não foi possível conectar ao servidor",
+            variant: "destructive",
+          });
+        };
+        
+        ws.onclose = () => {
+          setIsConnected(false);
+          setServerUrl('');
+          socketRef.current = null;
+          
+          toast({
+            title: "Desconectado",
+            description: "Conexão com servidor perdida",
+            variant: "destructive",
+          });
+        };
+      }
+      
     } catch (error) {
       console.error('Erro ao conectar:', error);
       toast({
-        title: "❌ Erro de conexão",
-        description: "Não foi possível conectar ao servidor",
+        title: "Erro",
+        description: "Erro ao conectar ao servidor",
         variant: "destructive",
       });
     }
   };
 
   const disconnect = () => {
-    if (wsClient.current) {
-      wsClient.current.close();
-      wsClient.current = null;
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
     }
     
-    if (reconnectTimeout.current) {
-      clearTimeout(reconnectTimeout.current);
-      reconnectTimeout.current = null;
+    if (serverRef.current) {
+      if (serverRef.current.channel) {
+        serverRef.current.channel.close();
+      }
+      serverRef.current = null;
     }
     
     setIsServer(false);
     setIsConnected(false);
     setConnectedClients(0);
     setServerUrl('');
-
+    
     toast({
-      title: "🔌 Desconectado",
-      description: "Sincronização interrompida",
+      title: "Desconectado",
+      description: "Sincronização desativada",
     });
   };
 
-  const broadcastData = (type: string, data: any) => {
-    const message = { type, data, timestamp: new Date().toISOString() };
-    console.log('Broadcasting data:', message);
-    
-    if (isServer || !wsClient.current) {
-      // localStorage broadcast (servidor ou fallback)
-      const key = `festa-sync-${type}`;
-      localStorage.setItem(key, JSON.stringify(message));
-      
-      // Remover após 2 segundos para não acumular
-      setTimeout(() => {
-        localStorage.removeItem(key);
-      }, 2000);
-    } else if (wsClient.current && wsClient.current.readyState === WebSocket.OPEN) {
-      // WebSocket para clientes conectados
-      wsClient.current.send(JSON.stringify(message));
-    }
-  };
-
-  const onDataReceived = (callback: (type: string, data: any) => void) => {
-    dataCallback.current = callback;
-  };
-
-  // Cleanup na desmontagem
+  // Sincronizar dados quando houver mudanças
   useEffect(() => {
-    return () => {
-      if (wsClient.current) {
-        wsClient.current.close();
+    if (isConnected && socketRef.current) {
+      const syncData = {
+        participants,
+        transactions,
+        timestamp: new Date().toISOString()
+      };
+      
+      try {
+        socketRef.current.send(JSON.stringify(syncData));
+      } catch (error) {
+        console.error('Erro ao sincronizar dados:', error);
       }
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
-    };
-  }, []);
+    }
+  }, [participants, transactions, isConnected]);
 
-  const value: SyncContextType = {
+  const value = {
     isServer,
     isConnected,
     connectedClients,
     serverUrl,
     startAsServer,
     connectToServer,
-    disconnect,
-    broadcastData,
-    onDataReceived,
+    disconnect
   };
 
   return (
