@@ -1,121 +1,128 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SettingsProvider } from "./contexts/SettingsContext";
-import { AppProvider } from "./contexts/LocalAppContext";
-import { AuthProvider } from "./contexts/LocalAuthContext";
-import { SyncProvider } from "./contexts/LocalSyncContext";
-import LocalProtectedRoute from "./components/LocalProtectedRoute";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { SyncedAppProvider } from './contexts/SyncedAppContext';
+import { AuthProvider } from './contexts/LocalAuthContext';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import Cadastro from './pages/Cadastro';
+import Consumo from './pages/Consumo';
+import Recarga from './pages/Recarga';
+import ConsultaSaldo from './pages/ConsultaSaldo';
+import Relatorios from './pages/Relatorios';
+import Encerramento from './pages/Encerramento';
+import Settings from './pages/Settings';
+import Sincronizacao from './pages/Sincronizacao';
+import { useAuth } from './contexts/LocalAuthContext';
+import { Toaster } from '@/components/ui/toaster';
 
-// Páginas
-import Index from "./pages/Index";
-import LocalAuth from "./pages/LocalAuth";
-import Dashboard from "./pages/Dashboard";
-import Cadastro from "./pages/Cadastro";
-import Recarga from "./pages/Recarga";
-import Consumo from "./pages/Consumo";
-import ConsultarSaldo from "./pages/ConsultarSaldo";
-import Historico from "./pages/Historico";
-import Relatorios from "./pages/Relatorios";
-import Encerramento from "./pages/Encerramento";
-import Settings from "./pages/Settings";
-import GuiaUso from "./pages/GuiaUso";
-import Documentacao from "./pages/Documentacao";
-import Sincronizacao from "./pages/Sincronizacao";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SettingsProvider>
-            <AppProvider>
-              <AuthProvider>
-                <SyncProvider>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<LocalAuth />} />
-                    
-                    {/* Rotas protegidas */}
-                    <Route path="/dashboard" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Dashboard />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/cadastro" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Cadastro />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/recarga" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Recarga />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/consumo" element={
-                      <LocalProtectedRoute>
-                        <Consumo />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/consultar-saldo" element={
-                      <LocalProtectedRoute>
-                        <ConsultarSaldo />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/historico" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Historico />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/relatorios" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Relatorios />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/encerramento" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Encerramento />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/sincronizacao" element={
-                      <LocalProtectedRoute>
-                        <Sincronizacao />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/settings" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Settings />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/guia-uso" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <GuiaUso />
-                      </LocalProtectedRoute>
-                    } />
-                    <Route path="/documentacao" element={
-                      <LocalProtectedRoute requireAdmin={true}>
-                        <Documentacao />
-                      </LocalProtectedRoute>
-                    } />
-                    
-                    {/* Página 404 */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </SyncProvider>
-              </AuthProvider>
-            </AppProvider>
-          </SettingsProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <SyncedAppProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cadastro"
+                element={
+                  <ProtectedRoute>
+                    <Cadastro />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/consumo"
+                element={
+                  <ProtectedRoute>
+                    <Consumo />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recarga"
+                element={
+                  <ProtectedRoute>
+                    <Recarga />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/consulta-saldo"
+                element={
+                  <ProtectedRoute>
+                    <ConsultaSaldo />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/relatorios"
+                element={
+                  <ProtectedRoute>
+                    <Relatorios />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/encerramento"
+                element={
+                  <ProtectedRoute>
+                    <Encerramento />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sincronizacao"
+                element={
+                  <ProtectedRoute>
+                    <Sincronizacao />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+            <Toaster />
+          </div>
+        </Router>
+      </SyncedAppProvider>
+    </AuthProvider>
   );
 }
 

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserPlus, Trash2, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { generateUUID } from '@/utils/idGeneration';
+import { useApp } from '../contexts/LocalAppContext';
 
 interface LocalUser {
   id: string;
@@ -20,16 +21,8 @@ interface LocalUser {
   isActive: boolean;
 }
 
-// Barracas disponíveis no sistema
-const availableBooths = [
-  { id: 'barraca-bebidas', name: 'Barraca de Bebidas' },
-  { id: 'barraca-comidas', name: 'Barraca de Comidas' },
-  { id: 'barraca-doces', name: 'Barraca de Doces' },
-  { id: 'barraca-salgados', name: 'Barraca de Salgados' },
-  { id: 'barraca-artesanato', name: 'Barraca de Artesanato' }
-];
-
 const LocalSettingsUsers: React.FC = () => {
+  const { booths } = useApp();
   const [users, setUsers] = useState<LocalUser[]>(() => {
     const savedUsers = localStorage.getItem('festa-users');
     return savedUsers ? JSON.parse(savedUsers) : [];
@@ -43,6 +36,9 @@ const LocalSettingsUsers: React.FC = () => {
     role: 'operator' as 'admin' | 'operator',
     boothId: ''
   });
+
+  // Usar barracas cadastradas no sistema
+  const availableBooths = booths.filter(booth => booth.isActive);
 
   const saveUsers = (newUsers: LocalUser[]) => {
     setUsers(newUsers);
@@ -201,6 +197,11 @@ const LocalSettingsUsers: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {availableBooths.length === 0 && (
+                    <p className="text-sm text-yellow-600 mt-1">
+                      ⚠️ Cadastre barracas primeiro na aba "Barracas"
+                    </p>
+                  )}
                 </div>
               </div>
 

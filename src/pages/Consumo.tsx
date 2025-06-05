@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, User, CreditCard, Receipt, Gift } from 'lucide-react';
 import QRCodeScanner from '../components/QRCodeScanner';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { useApp } from '../contexts/LocalAppContext';
 import { useAuth } from '../contexts/LocalAuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -27,6 +29,7 @@ const Consumo: React.FC = () => {
   const [cardNumber, setCardNumber] = useState('');
   const [cart, setCart] = useState<Array<{product: any; quantity: number}>>([]);
   const [showScanner, setShowScanner] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
 
@@ -82,6 +85,14 @@ const Consumo: React.FC = () => {
   const handleQRCodeScan = (data: string) => {
     setCardNumber(data);
     setShowScanner(false);
+    setTimeout(() => {
+      handleParticipantSearch();
+    }, 100);
+  };
+
+  const handleBarcodeScan = (barcode: string) => {
+    setCardNumber(barcode);
+    setShowBarcodeScanner(false);
     setTimeout(() => {
       handleParticipantSearch();
     }, 100);
@@ -227,6 +238,9 @@ const Consumo: React.FC = () => {
                 </Button>
                 <Button variant="outline" onClick={() => setShowScanner(true)}>
                   📱 QR Code
+                </Button>
+                <Button variant="outline" onClick={() => setShowBarcodeScanner(true)}>
+                  📄 Código de Barras
                 </Button>
               </div>
             </div>
@@ -397,6 +411,13 @@ const Consumo: React.FC = () => {
           isOpen={showScanner}
           onScan={handleQRCodeScan}
           onClose={() => setShowScanner(false)}
+        />
+
+        {/* Scanner Código de Barras */}
+        <BarcodeScanner
+          isOpen={showBarcodeScanner}
+          onScan={handleBarcodeScan}
+          onClose={() => setShowBarcodeScanner(false)}
         />
       </div>
     </Layout>

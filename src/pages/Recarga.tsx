@@ -1,52 +1,81 @@
+
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { User, CreditCard, DollarSign, Receipt } from 'lucide-react';
+import QRCodeScanner from '../components/QRCodeScanner';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { useApp } from '../contexts/LocalAppContext';
-import { useAuth } from '@/contexts/LocalAuthContext';
-import { CreditCard, Search, Plus, DollarSign, History } from 'lucide-react';
+import { useAuth } from '../contexts/LocalAuthContext';
 import { toast } from '@/hooks/use-toast';
 import PrintReceipt from '../components/PrintReceipt';
 
 const Recarga: React.FC = () => {
-  const { addTransaction, getParticipantByCard, participants, transactions } = useApp();
   const { user } = useAuth();
-  const [searchCard, setSearchCard] = useState('');
+  const { addTransaction, getParticipantByCard, updateParticipant } = useApp();
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
-  const [rechargeAmount, setRechargeAmount] = useState(0);
-  const [lastRecharge, setLastRecharge] = useState<any>(null);
-  const [showPrintButton, setShowPrintButton] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [rechargeAmount, setRechargeAmount] = useState<number>(0);
+  const [showScanner, setShowScanner] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<any>(null);
 
-  // Usar o nome do usuário logado automaticamente
-  const operatorName = user?.name || 'Sistema';
-
-  const handleSearch = () => {
-    if (!searchCard) {
+  const handleParticipantSearch = () => {
+    if (!cardNumber.trim()) {
       toast({
         title: "Erro",
-        description: "Digite o número do cartão para buscar",
-        variant: "destructive",
+        description: "Digite o número do cartão",
+        variant: "destructive"
       });
       return;
     }
 
-    const participant = getParticipantByCard(searchCard);
-    if (participant) {
-      setSelectedParticipant(participant);
-      toast({
-        title: "Participante encontrado!",
-        description: `${participant.name} - Saldo atual: ${formatCurrency(participant.balance)}`,
-      });
-    } else {
-      setSelectedParticipant(null);
+    const participant = getParticipantByCard(cardNumber.trim());
+    
+    if (!participant) {
       toast({
         title: "Participante não encontrado",
-        description: "Verifique o número do cartão e tente novamente",
-        variant: "destructive",
+        description: "Verifique o número do cartão",
+        variant: "destructive"
       });
+      return;
     }
+
+    if (!participant.isActive) {
+      toast({
+        title: "Cartão inativo",
+        description: "Este cartão foi desativado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedParticipant(participant);
+    toast({
+      title: "Participante encontrado!",
+      description: `${participant.name} - Saldo: R$ ${participant.balance.toFixed(2)}`
+    });
+  };
+
+  const handleQRCodeScan = (data: string) => {
+    setCardNumber(data);
+    setShowScanner(false);
+    setTimeout(() => {
+      handleParticipantSearch();
+    }, 100);
+  };
+
+  const handleBarcodeScan = (barcode: string) => {
+    setCardNumber(barcode);
+    setShowBarcodeScanner(false);
+    setTimeout(() => {
+      handleParticipantSearch();
+    }, 100);
   };
 
   const handleRecharge = () => {
@@ -54,7 +83,7 @@ const Recarga: React.FC = () => {
       toast({
         title: "Erro",
         description: "Selecione um participante primeiro",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -62,253 +91,236 @@ const Recarga: React.FC = () => {
     if (rechargeAmount <= 0) {
       toast({
         title: "Erro",
-        description: "Valor da recarga deve ser maior que zero",
-        variant: "destructive",
+        description: "Digite um valor válido para recarga",
+        variant: "destructive"
       });
       return;
     }
 
-    const previousBalance = selectedParticipant.balance;
-
-    addTransaction({
+    // Registrar transação
+    const transaction = {
       participantId: selectedParticipant.id,
-      type: 'credit',
+      type: 'credit' as const,
       amount: rechargeAmount,
-      description: 'Recarga via maquininha',
-      operatorName: operatorName,
+      description: `Recarga de R$ ${rechargeAmount.toFixed(2)}`,
+      booth: user?.boothName || 'Sistema',
+      operatorName: user?.name || 'Operador'
+    };
+
+    addTransaction(transaction);
+
+    // Atualizar saldo do participante
+    const newBalance = selectedParticipant.balance + rechargeAmount;
+    updateParticipant(selectedParticipant.id, {
+      balance: newBalance
     });
 
-    // Salvar dados para impressão
-    setLastRecharge({
+    // Preparar dados para o recibo
+    setLastTransaction({
       participantName: selectedParticipant.name,
       cardNumber: selectedParticipant.cardNumber,
       amount: rechargeAmount,
-      balance: previousBalance + rechargeAmount,
-      operatorName: operatorName
+      balance: newBalance,
+      operatorName: user?.name || 'Sistema'
     });
-
-    // Mostrar botão de impressão
-    setShowPrintButton(true);
 
     toast({
       title: "Recarga realizada!",
-      description: `${formatCurrency(rechargeAmount)} adicionado ao cartão de ${selectedParticipant.name}`,
+      description: `Adicionado R$ ${rechargeAmount.toFixed(2)} ao cartão`,
     });
 
     // Limpar formulário
-    setRechargeAmount(0);
-    setSearchCard('');
     setSelectedParticipant(null);
+    setCardNumber('');
+    setRechargeAmount(0);
+    setShowReceipt(true);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
+  const quickAmounts = [10, 20, 50, 100, 200, 500];
+
+  const clearForm = () => {
+    setSelectedParticipant(null);
+    setCardNumber('');
+    setRechargeAmount(0);
   };
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('pt-BR');
-  };
-
-  const recentRecharges = transactions
-    .filter(t => t.type === 'credit' && t.description !== 'Carga inicial')
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10);
-
-  const totalRecharges = transactions
-    .filter(t => t.type === 'credit' && t.description !== 'Carga inicial')
-    .reduce((total, t) => total + t.amount, 0);
 
   return (
-    <Layout title="Recarga de Créditos">
-      <div className="space-y-6">
+    <Layout title="Recarga">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            💳 Recarga de Créditos
+            💰 Recarga de Cartão
           </h1>
           <p className="text-gray-600">
-            Adicione saldo aos cartões dos participantes
-          </p>
-          <p className="text-sm text-blue-600 font-medium mt-1">
-            Operador: {operatorName}
+            Adicione créditos aos cartões dos participantes
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulário de Recarga */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CreditCard className="h-5 w-5 mr-2 text-green-600" />
-                  Nova Recarga
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Busca de Participante */}
-                <div>
-                  <Label htmlFor="searchCard">Buscar Cartão</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input
-                      id="searchCard"
-                      placeholder="Digite o número do cartão"
-                      value={searchCard}
-                      onChange={(e) => setSearchCard(e.target.value)}
-                      className="flex-1"
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button onClick={handleSearch} variant="outline">
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Informações do Participante */}
+        {/* Buscar Participante */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Identificar Participante
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label htmlFor="card-number">Número do Cartão</Label>
+                <Input
+                  id="card-number"
+                  placeholder="Digite o número do cartão"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleParticipantSearch()}
+                />
+              </div>
+              <div className="flex gap-2 items-end">
+                <Button onClick={handleParticipantSearch}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Buscar
+                </Button>
+                <Button variant="outline" onClick={() => setShowScanner(true)}>
+                  📱 QR Code
+                </Button>
+                <Button variant="outline" onClick={() => setShowBarcodeScanner(true)}>
+                  📄 Código de Barras
+                </Button>
                 {selectedParticipant && (
-                  <Card className="bg-blue-50 border-blue-200">
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-blue-800 mb-2">Participante Selecionado</h3>
-                      <div className="space-y-1">
-                        <p><span className="font-medium">Nome:</span> {selectedParticipant.name}</p>
-                        <p><span className="font-medium">Cartão:</span> {selectedParticipant.cardNumber}</p>
-                        <p><span className="font-medium">Saldo Atual:</span> <span className="text-green-600 font-bold">{formatCurrency(selectedParticipant.balance)}</span></p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <Button variant="outline" onClick={clearForm}>
+                    Limpar
+                  </Button>
                 )}
+              </div>
+            </div>
 
-                {/* Formulário de Recarga */}
-                {selectedParticipant && (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="rechargeAmount">Valor da Recarga *</Label>
-                      <Input
-                        id="rechargeAmount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        placeholder="0,00"
-                        value={rechargeAmount}
-                        onChange={(e) => setRechargeAmount(parseFloat(e.target.value) || 0)}
-                        className="mt-1"
-                        required
-                      />
-                    </div>
-
-                    {/* Botões de Valores Rápidos */}
-                    <div className="space-y-2">
-                      <Label>Valores Rápidos</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[10, 20, 50, 100, 200, 500].map((value) => (
-                          <Button
-                            key={value}
-                            variant="outline"
-                            onClick={() => setRechargeAmount(value)}
-                            className="text-sm"
-                          >
-                            R$ {value}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Button 
-                      onClick={handleRecharge} 
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                      disabled={!rechargeAmount}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Realizar Recarga de {formatCurrency(rechargeAmount)}
-                    </Button>
+            {selectedParticipant && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-green-800">{selectedParticipant.name}</h3>
+                    <p className="text-green-600">Cartão: {selectedParticipant.cardNumber}</p>
                   </div>
-                )}
-
-                {/* Botão de Impressão - só aparece após a recarga */}
-                {showPrintButton && lastRecharge && (
-                  <div className="flex justify-center pt-4 border-t">
-                    <PrintReceipt
-                      type="recarga"
-                      data={lastRecharge}
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowPrintButton(false)}
-                      className="ml-2"
-                    >
-                      Nova Recarga
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Resumo e Histórico */}
-          <div className="space-y-6">
-            {/* Estatísticas */}
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="flex items-center text-green-800">
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  Resumo de Recargas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Total em Recargas:</span>
-                    <span className="font-bold text-green-800">{formatCurrency(totalRecharges)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Recargas Hoje:</span>
-                    <span className="font-bold text-green-800">
-                      {recentRecharges.filter(r => 
-                        new Date(r.timestamp).toDateString() === new Date().toDateString()
-                      ).length}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recargas Recentes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <History className="h-5 w-5 mr-2 text-purple-600" />
-                  Recargas Recentes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentRecharges.map((recharge) => {
-                    const participant = participants.find(p => p.id === recharge.participantId);
-                    return (
-                      <div key={recharge.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                        <div>
-                          <p className="font-medium text-gray-900">{participant?.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {recharge.operatorName} • {formatTime(recharge.timestamp)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">+{formatCurrency(recharge.amount)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {recentRecharges.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">
-                      Nenhuma recarga registrada ainda
+                  <div className="text-right">
+                    <p className="text-sm text-green-600">Saldo Atual</p>
+                    <p className="text-xl font-bold text-green-800">
+                      R$ {selectedParticipant.balance.toFixed(2)}
                     </p>
-                  )}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recarga */}
+        {selectedParticipant && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Adicionar Créditos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="recharge-amount">Valor da Recarga</Label>
+                <Input
+                  id="recharge-amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={rechargeAmount || ''}
+                  onChange={(e) => setRechargeAmount(parseFloat(e.target.value) || 0)}
+                  className="text-lg"
+                />
+              </div>
+
+              {/* Valores Rápidos */}
+              <div className="space-y-2">
+                <Label>Valores Rápidos</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {quickAmounts.map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant="outline"
+                      onClick={() => setRechargeAmount(value)}
+                      className="text-sm"
+                    >
+                      R$ {value}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resumo */}
+              {rechargeAmount > 0 && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-blue-800 mb-2">Resumo da Recarga</h3>
+                    <div className="space-y-1 text-blue-700">
+                      <p><span className="font-medium">Participante:</span> {selectedParticipant.name}</p>
+                      <p><span className="font-medium">Saldo Atual:</span> R$ {selectedParticipant.balance.toFixed(2)}</p>
+                      <p><span className="font-medium">Valor da Recarga:</span> R$ {rechargeAmount.toFixed(2)}</p>
+                      <p><span className="font-medium">Novo Saldo:</span> R$ {(selectedParticipant.balance + rechargeAmount).toFixed(2)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Button 
+                onClick={handleRecharge}
+                className="w-full"
+                size="lg"
+                disabled={rechargeAmount <= 0}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Confirmar Recarga - R$ {rechargeAmount.toFixed(2)}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recibo */}
+        {showReceipt && lastTransaction && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Recarga Realizada com Sucesso!
+              </CardTitle>
+              <Button 
+                variant="outline"
+                onClick={() => setShowReceipt(false)}
+              >
+                Fechar
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <PrintReceipt 
+                type="recarga"
+                data={lastTransaction}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scanner QR Code */}
+        <QRCodeScanner
+          isOpen={showScanner}
+          onScan={handleQRCodeScan}
+          onClose={() => setShowScanner(false)}
+        />
+
+        {/* Scanner Código de Barras */}
+        <BarcodeScanner
+          isOpen={showBarcodeScanner}
+          onScan={handleBarcodeScan}
+          onClose={() => setShowBarcodeScanner(false)}
+        />
       </div>
     </Layout>
   );
