@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { SyncedAppProvider } from './contexts/SyncedAppContext';
 import { AuthProvider } from './contexts/LocalAuthContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import LocalAuth from './pages/LocalAuth';
 import Dashboard from './pages/Dashboard';
 import Cadastro from './pages/Cadastro';
@@ -40,88 +41,90 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 function App() {
   return (
     <AuthProvider>
-      <SyncedAppProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Routes>
-              <Route path="/login" element={<LocalAuth />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cadastro"
-                element={
-                  <ProtectedRoute>
-                    <Cadastro />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/consumo"
-                element={
-                  <ProtectedRoute>
-                    <Consumo />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recarga"
-                element={
-                  <ProtectedRoute>
-                    <Recarga />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/consulta-saldo"
-                element={
-                  <ProtectedRoute>
-                    <ConsultaSaldo />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/relatorios"
-                element={
-                  <ProtectedRoute>
-                    <Relatorios />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/encerramento"
-                element={
-                  <ProtectedRoute>
-                    <Encerramento />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/sincronizacao"
-                element={
-                  <ProtectedRoute>
-                    <Sincronizacao />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-            <Toaster />
-          </div>
-        </Router>
-      </SyncedAppProvider>
+      <SettingsProvider>
+        <SyncedAppProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                <Route path="/login" element={<LocalAuth />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastro"
+                  element={
+                    <ProtectedRoute>
+                      <Cadastro />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/consumo"
+                  element={
+                    <ProtectedRoute>
+                      <Consumo />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/recarga"
+                  element={
+                    <ProtectedRoute>
+                      <Recarga />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/consulta-saldo"
+                  element={
+                    <ProtectedRoute>
+                      <ConsultaSaldo />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/relatorios"
+                  element={
+                    <ProtectedRoute>
+                      <Relatorios />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/encerramento"
+                  element={
+                    <ProtectedRoute>
+                      <Encerramento />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sincronizacao"
+                  element={
+                    <ProtectedRoute>
+                      <Sincronizacao />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+              <Toaster />
+            </div>
+          </Router>
+        </SyncedAppProvider>
+      </SettingsProvider>
     </AuthProvider>
   );
 }
