@@ -14,7 +14,8 @@ import {
   LogOut, 
   Menu,
   X,
-  Wifi
+  Wifi,
+  UserCheck
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,6 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     navigate('/login');
   };
 
+  const handleChangeUser = () => {
+    signOut();
+    navigate('/login');
+  };
+
   const navigationItems = [
     { path: '/', icon: Home, label: 'Dashboard', adminOnly: false },
     { path: '/cadastro', icon: UserPlus, label: 'Cadastro', adminOnly: false },
@@ -41,6 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
     { path: '/recarga', icon: DollarSign, label: 'Recarga', adminOnly: false },
     { path: '/consulta-saldo', icon: Eye, label: 'Consulta Saldo', adminOnly: false },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios', adminOnly: true },
+    { path: '/encerramento', icon: UserCheck, label: 'Encerramento', adminOnly: false },
     { path: '/settings', icon: Settings, label: 'Configurações', adminOnly: true },
     { path: '/sincronizacao', icon: Wifi, label: 'Sincronização', adminOnly: false },
   ];
@@ -101,15 +108,26 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
             )}
           </div>
         </div>
-        <Button
-          onClick={handleSignOut}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
-        </Button>
+        <div className="space-y-2">
+          <Button
+            onClick={handleChangeUser}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            <UserCheck className="h-4 w-4 mr-2" />
+            Mudar Usuário
+          </Button>
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
+        </div>
       </div>
     </div>
   );
