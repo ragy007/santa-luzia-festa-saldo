@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -378,27 +377,27 @@ const Consumo: React.FC = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <PrintReceipt transaction={lastTransaction} />
+              <PrintReceipt 
+                type="consumo"
+                data={{
+                  participantName: lastTransaction.participant.name,
+                  cardNumber: lastTransaction.participant.cardNumber,
+                  amount: lastTransaction.total,
+                  balance: lastTransaction.participant.balance - lastTransaction.total,
+                  items: lastTransaction.description,
+                  operatorName: lastTransaction.operatorName
+                }}
+              />
             </CardContent>
           </Card>
         )}
 
         {/* Scanner QR Code */}
-        {showScanner && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Escanear QR Code</h3>
-              <QRCodeScanner onScan={handleQRCodeScan} />
-              <Button 
-                variant="outline" 
-                onClick={() => setShowScanner(false)}
-                className="w-full mt-4"
-              >
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        )}
+        <QRCodeScanner
+          isOpen={showScanner}
+          onScan={handleQRCodeScan}
+          onClose={() => setShowScanner(false)}
+        />
       </div>
     </Layout>
   );
