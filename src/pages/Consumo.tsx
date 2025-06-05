@@ -1,381 +1,404 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ShoppingCart, User, CreditCard, Receipt, Gift } from 'lucide-react';
+import QRCodeScanner from '../components/QRCodeScanner';
 import { useApp } from '../contexts/LocalAppContext';
-import { useAuth } from '@/contexts/LocalAuthContext';
-import { ShoppingCart, Search, AlertCircle, TrendingDown, History } from 'lucide-react';
+import { useAuth } from '../contexts/LocalAuthContext';
 import { toast } from '@/hooks/use-toast';
 import PrintReceipt from '../components/PrintReceipt';
 
 const Consumo: React.FC = () => {
-  const { addTransaction, getParticipantByCard, participants, transactions } = useApp();
-  const { user } = useAuth();
-  const [searchCard, setSearchCard] = useState('');
+  const { user, isOperator } = useAuth();
+  const { 
+    participants, 
+    products, 
+    addTransaction, 
+    getParticipantByCard, 
+    updateParticipant 
+  } = useApp();
+  
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
-  const [purchaseAmount, setPurchaseAmount] = useState(0);
-  const [items, setItems] = useState('');
-  const [lastPurchase, setLastPurchase] = useState<any>(null);
-  const [showPrintButton, setShowPrintButton] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cart, setCart] = useState<Array<{product: any; quantity: number}>>([]);
+  const [showScanner, setShowScanner] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<any>(null);
 
-  // Usar o nome do usuário logado automaticamente
-  const operatorName = user?.name || 'Sistema';
-  const operatorBooth = user?.boothName || 'Sistema';
+  // Filtrar produtos da barraca do operador
+  const operatorProducts = products.filter(product => 
+    product.isActive && 
+    user?.boothName && 
+    product.booth === user.boothName
+  );
 
-  const handleSearch = () => {
-    if (!searchCard) {
+  console.log('Operador logado:', user?.name, 'Barraca:', user?.boothName);
+  console.log('Produtos disponíveis:', products);
+  console.log('Produtos da barraca do operador:', operatorProducts);
+
+  const handleParticipantSearch = () => {
+    if (!cardNumber.trim()) {
       toast({
         title: "Erro",
-        description: "Digite o número do cartão para buscar",
-        variant: "destructive",
+        description: "Digite o número do cartão",
+        variant: "destructive"
       });
       return;
     }
 
-    const participant = getParticipantByCard(searchCard);
-    if (participant) {
-      setSelectedParticipant(participant);
-      toast({
-        title: "Participante encontrado!",
-        description: `${participant.name} - Saldo: ${formatCurrency(participant.balance)}`,
-      });
-    } else {
-      setSelectedParticipant(null);
+    const participant = getParticipantByCard(cardNumber.trim());
+    
+    if (!participant) {
       toast({
         title: "Participante não encontrado",
-        description: "Verifique o número do cartão e tente novamente",
-        variant: "destructive",
+        description: "Verifique o número do cartão",
+        variant: "destructive"
       });
+      return;
+    }
+
+    if (!participant.isActive) {
+      toast({
+        title: "Cartão inativo",
+        description: "Este cartão foi desativado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedParticipant(participant);
+    setCart([]);
+    toast({
+      title: "Participante encontrado!",
+      description: `${participant.name} - Saldo: R$ ${participant.balance.toFixed(2)}`
+    });
+  };
+
+  const handleQRCodeScan = (data: string) => {
+    setCardNumber(data);
+    setShowScanner(false);
+    setTimeout(() => {
+      handleParticipantSearch();
+    }, 100);
+  };
+
+  const addToCart = (product: any) => {
+    const existingItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingItem) {
+      setCart(cart.map(item =>
+        item.product.id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      setCart([...cart, { product, quantity: 1 }]);
     }
   };
 
-  const handlePurchase = () => {
+  const removeFromCart = (productId: string) => {
+    const existingItem = cart.find(item => item.product.id === productId);
+    
+    if (existingItem && existingItem.quantity > 1) {
+      setCart(cart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      ));
+    } else {
+      setCart(cart.filter(item => item.product.id !== productId));
+    }
+  };
+
+  const getTotalAmount = () => {
+    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  };
+
+  const handleSale = () => {
     if (!selectedParticipant) {
       toast({
         title: "Erro",
         description: "Selecione um participante primeiro",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
 
-    if (purchaseAmount <= 0) {
+    if (cart.length === 0) {
       toast({
         title: "Erro",
-        description: "Valor da compra deve ser maior que zero",
-        variant: "destructive",
+        description: "Adicione produtos ao carrinho",
+        variant: "destructive"
       });
       return;
     }
 
-    if (selectedParticipant.balance < purchaseAmount) {
+    const totalAmount = getTotalAmount();
+
+    if (selectedParticipant.balance < totalAmount) {
       toast({
-        title: "Saldo insuficiente!",
-        description: `Saldo disponível: ${formatCurrency(selectedParticipant.balance)}`,
-        variant: "destructive",
+        title: "Saldo insuficiente",
+        description: `Saldo atual: R$ ${selectedParticipant.balance.toFixed(2)} | Necessário: R$ ${totalAmount.toFixed(2)}`,
+        variant: "destructive"
       });
       return;
     }
 
-    const previousBalance = selectedParticipant.balance;
-
-    addTransaction({
+    // Registrar transação
+    const transaction = {
       participantId: selectedParticipant.id,
-      type: 'debit',
-      amount: purchaseAmount,
-      description: items || 'Compra na festa',
-      booth: operatorBooth,
-      operatorName: operatorName,
+      type: 'debit' as const,
+      amount: totalAmount,
+      description: cart.map(item => `${item.quantity}x ${item.product.name}`).join(', '),
+      booth: user?.boothName || '',
+      operatorName: user?.name || 'Operador'
+    };
+
+    addTransaction(transaction);
+
+    // Atualizar saldo do participante
+    updateParticipant(selectedParticipant.id, {
+      balance: selectedParticipant.balance - totalAmount
     });
 
-    // Salvar dados para impressão
-    setLastPurchase({
-      participantName: selectedParticipant.name,
-      cardNumber: selectedParticipant.cardNumber,
-      amount: purchaseAmount,
-      balance: previousBalance - purchaseAmount,
-      items: items || 'Compra na festa',
-      operatorName: operatorName,
-      booth: operatorBooth
+    // Preparar dados para o recibo
+    setLastTransaction({
+      ...transaction,
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      participant: selectedParticipant,
+      items: cart,
+      total: totalAmount
     });
-
-    // Mostrar botão de impressão
-    setShowPrintButton(true);
 
     toast({
-      title: "Venda registrada!",
-      description: `${formatCurrency(purchaseAmount)} debitado do cartão de ${selectedParticipant.name}`,
+      title: "Venda realizada!",
+      description: `Total: R$ ${totalAmount.toFixed(2)}`,
     });
 
     // Limpar formulário
-    setPurchaseAmount(0);
-    setItems('');
-    setSearchCard('');
     setSelectedParticipant(null);
+    setCardNumber('');
+    setCart([]);
+    setShowReceipt(true);
   };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('pt-BR');
-  };
-
-  // Filtrar vendas apenas da barraca do operador (se for operador)
-  const boothSales = user?.role === 'operator' 
-    ? transactions.filter(t => t.type === 'debit' && t.booth === operatorBooth)
-    : transactions.filter(t => t.type === 'debit');
-
-  const recentSales = boothSales
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10);
-
-  const totalSales = boothSales.reduce((total, t) => total + t.amount, 0);
-
-  const todaySales = boothSales
-    .filter(t => new Date(t.timestamp).toDateString() === new Date().toDateString())
-    .reduce((total, t) => total + t.amount, 0);
 
   return (
-    <Layout title="Registrar Vendas">
-      <div className="space-y-6">
+    <Layout title="Consumo">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            🛍️ Registrar Vendas
+            🛒 Registrar Consumo
           </h1>
           <p className="text-gray-600">
-            Registre vendas e débitos dos participantes
+            {user?.boothName ? `Barraca: ${user.boothName}` : 'Registre vendas e consumos dos participantes'}
           </p>
-          <div className="text-sm mt-2 space-y-1">
-            <p className="text-blue-600 font-medium">Operador: {operatorName}</p>
-            {user?.role === 'operator' && (
-              <p className="text-green-600 font-medium">Barraca: {operatorBooth}</p>
-            )}
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulário de Venda */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 mr-2 text-purple-600" />
-                  Nova Venda - {operatorBooth}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Busca de Participante */}
-                <div>
-                  <Label htmlFor="searchCard">Buscar Cartão</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input
-                      id="searchCard"
-                      placeholder="Digite o número do cartão"
-                      value={searchCard}
-                      onChange={(e) => setSearchCard(e.target.value)}
-                      className="flex-1"
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button onClick={handleSearch} variant="outline">
-                      <Search className="h-4 w-4" />
-                    </Button>
+        {/* Buscar Participante */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Identificar Participante
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label htmlFor="card-number">Número do Cartão</Label>
+                <Input
+                  id="card-number"
+                  placeholder="Digite o número do cartão"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleParticipantSearch()}
+                />
+              </div>
+              <div className="flex gap-2 items-end">
+                <Button onClick={handleParticipantSearch}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Buscar
+                </Button>
+                <Button variant="outline" onClick={() => setShowScanner(true)}>
+                  📱 QR Code
+                </Button>
+              </div>
+            </div>
+
+            {selectedParticipant && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-green-800">{selectedParticipant.name}</h3>
+                    <p className="text-green-600">Cartão: {selectedParticipant.cardNumber}</p>
                   </div>
-                </div>
-
-                {/* Informações do Participante */}
-                {selectedParticipant && (
-                  <Card className={`${
-                    selectedParticipant.balance >= purchaseAmount ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
-                  }`}>
-                    <CardContent className="p-4">
-                      <h3 className={`font-semibold mb-2 ${
-                        selectedParticipant.balance >= purchaseAmount ? 'text-blue-800' : 'text-red-800'
-                      }`}>
-                        Participante Selecionado
-                      </h3>
-                      <div className="space-y-1">
-                        <p><span className="font-medium">Nome:</span> {selectedParticipant.name}</p>
-                        <p><span className="font-medium">Cartão:</span> {selectedParticipant.cardNumber}</p>
-                        <p><span className="font-medium">Saldo Atual:</span> 
-                          <span className={`font-bold ml-1 ${
-                            selectedParticipant.balance >= purchaseAmount ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatCurrency(selectedParticipant.balance)}
-                          </span>
-                        </p>
-                        {purchaseAmount > 0 && (
-                          <p><span className="font-medium">Saldo Após Compra:</span> 
-                            <span className={`font-bold ml-1 ${
-                              selectedParticipant.balance >= purchaseAmount ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {formatCurrency(selectedParticipant.balance - purchaseAmount)}
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                      {selectedParticipant.balance < purchaseAmount && purchaseAmount > 0 && (
-                        <div className="flex items-center mt-2 p-2 bg-red-100 rounded">
-                          <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-                          <span className="text-red-700 text-sm">Saldo insuficiente para esta compra</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Formulário de Venda Simplificado */}
-                {selectedParticipant && (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="purchaseAmount">Valor da Venda *</Label>
-                      <Input
-                        id="purchaseAmount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        placeholder="0,00"
-                        value={purchaseAmount}
-                        onChange={(e) => setPurchaseAmount(parseFloat(e.target.value) || 0)}
-                        className="mt-1 text-lg"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="items">Itens/Descrição (Opcional)</Label>
-                      <Input
-                        id="items"
-                        placeholder="Ex: 2x Pastel, 1x Refrigerante"
-                        value={items}
-                        onChange={(e) => setItems(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-
-                    {/* Botões de Valores Rápidos */}
-                    <div className="space-y-2">
-                      <Label>Valores Rápidos</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[5, 10, 15, 20, 25, 30].map((value) => (
-                          <Button
-                            key={value}
-                            type="button"
-                            variant="outline"
-                            onClick={() => setPurchaseAmount(value)}
-                            className="text-sm"
-                          >
-                            R$ {value}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Button 
-                      onClick={handlePurchase} 
-                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-lg py-3"
-                      disabled={!purchaseAmount || selectedParticipant.balance < purchaseAmount}
-                    >
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Registrar Venda de {formatCurrency(purchaseAmount)}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Botão de Impressão - só aparece após a venda */}
-                {showPrintButton && lastPurchase && (
-                  <div className="flex justify-center pt-4 border-t">
-                    <PrintReceipt
-                      type="consumo"
-                      data={lastPurchase}
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowPrintButton(false)}
-                      className="ml-2"
-                    >
-                      Nova Venda
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Resumo e Histórico */}
-          <div className="space-y-6">
-            {/* Estatísticas */}
-            <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
-              <CardHeader>
-                <CardTitle className="flex items-center text-purple-800">
-                  <TrendingDown className="h-5 w-5 mr-2" />
-                  Resumo de Vendas
-                  {user?.role === 'operator' && (
-                    <span className="text-sm font-normal ml-2">({operatorBooth})</span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Total Vendido:</span>
-                    <span className="font-bold text-purple-800">{formatCurrency(totalSales)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Vendas Hoje:</span>
-                    <span className="font-bold text-purple-800">{formatCurrency(todaySales)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Vendas Recentes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <History className="h-5 w-5 mr-2 text-orange-600" />
-                  Vendas Recentes
-                  {user?.role === 'operator' && (
-                    <span className="text-sm font-normal ml-2">({operatorBooth})</span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentSales.map((sale) => {
-                    const participant = participants.find(p => p.id === sale.participantId);
-                    return (
-                      <div key={sale.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                        <div>
-                          <p className="font-medium text-gray-900">{participant?.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {sale.booth} • {formatTime(sale.timestamp)}
-                          </p>
-                          <p className="text-xs text-gray-400">{sale.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-red-600">-{formatCurrency(sale.amount)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {recentSales.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">
-                      Nenhuma venda registrada ainda
+                  <div className="text-right">
+                    <p className="text-sm text-green-600">Saldo Disponível</p>
+                    <p className="text-xl font-bold text-green-800">
+                      R$ {selectedParticipant.balance.toFixed(2)}
                     </p>
-                  )}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Produtos Disponíveis */}
+        {selectedParticipant && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Produtos Disponíveis - {user?.boothName}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {operatorProducts.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-2">Nenhum produto cadastrado para esta barraca</p>
+                  <p className="text-sm text-gray-400">
+                    Produtos precisam ser cadastrados na aba "Barracas" das configurações
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {operatorProducts.map((product) => (
+                    <div key={product.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{product.name}</h3>
+                          <div className="flex items-center gap-2">
+                            {product.isFree ? (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                <Gift className="h-3 w-3 mr-1" />
+                                Grátis
+                              </Badge>
+                            ) : (
+                              <p className="text-lg font-bold text-blue-600">
+                                R$ {product.price.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => addToCart(product)}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        Adicionar ao Carrinho
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Carrinho */}
+        {cart.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Carrinho de Compras</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cart.map((item) => (
+                <div key={item.product.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{item.product.name}</h4>
+                    <p className="text-sm text-gray-500">
+                      {item.product.isFree ? 'Grátis' : `R$ ${item.product.price.toFixed(2)} cada`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeFromCart(item.product.id)}
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center">{item.quantity}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => addToCart(item.product)}
+                    >
+                      +
+                    </Button>
+                    <div className="w-20 text-right font-medium">
+                      {item.product.isFree ? 'R$ 0,00' : `R$ ${(item.product.price * item.quantity).toFixed(2)}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <Separator />
+              
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>Total:</span>
+                <span>R$ {getTotalAmount().toFixed(2)}</span>
+              </div>
+              
+              <Button 
+                onClick={handleSale}
+                className="w-full"
+                size="lg"
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Finalizar Venda
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recibo */}
+        {showReceipt && lastTransaction && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Venda Realizada com Sucesso!
+              </CardTitle>
+              <Button 
+                variant="outline"
+                onClick={() => setShowReceipt(false)}
+              >
+                Fechar
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <PrintReceipt transaction={lastTransaction} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scanner QR Code */}
+        {showScanner && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Escanear QR Code</h3>
+              <QRCodeScanner onScan={handleQRCodeScan} />
+              <Button 
+                variant="outline" 
+                onClick={() => setShowScanner(false)}
+                className="w-full mt-4"
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   );
