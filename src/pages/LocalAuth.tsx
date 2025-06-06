@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const LocalAuth: React.FC = () => {
   
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
-  const { isConnected, connectToServer: connectSync, startServer, isServer } = useSync();
+  const { isConnected, connectToServer: connectSync, startAsServer, isServer } = useSync();
 
   // Redirecionar se já estiver logado
   useEffect(() => {
@@ -35,6 +34,25 @@ const LocalAuth: React.FC = () => {
       }
     }
   }, [user, navigate]);
+
+  const handleServerStart = async () => {
+    setSyncLoading(true);
+    try {
+      startAsServer();
+      toast({
+        title: "Servidor iniciado!",
+        description: "Agora você é o servidor. Outros dispositivos podem se conectar.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar o servidor",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const handleServerConnection = async () => {
     if (!serverUrl.trim()) {
@@ -126,6 +144,38 @@ const LocalAuth: React.FC = () => {
               />
               <Label htmlFor="connect-server">Conectar a um servidor</Label>
             </div>
+
+            {!connectToServer && !isConnected && (
+              <div className="space-y-3">
+                <div className="bg-blue-50 p-3 rounded border">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>💡 Ser o Servidor Principal:</strong>
+                  </p>
+                  <p className="text-xs text-blue-700 mb-3">
+                    Use esta opção se este é o dispositivo principal (admin). 
+                    Outros dispositivos irão se conectar a este.
+                  </p>
+                  <Button 
+                    onClick={handleServerStart}
+                    disabled={syncLoading}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {syncLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Iniciando...
+                      </>
+                    ) : (
+                      <>
+                        <Server className="h-4 w-4 mr-2" />
+                        Iniciar como Servidor
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {connectToServer && (
               <div className="space-y-3">
